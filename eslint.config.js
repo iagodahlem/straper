@@ -5,6 +5,6 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['dist/', 'scaffold/'],
+    ignores: ['dist/', 'scaffold/', 'tests/fixtures/'],
   },
 )

@@ -15,8 +15,10 @@ const AGENT_NAME = 'smokebot'
 
 const REPO_REGISTRY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'registry')
 
-// The workspace CLI statically requires every skill command module at load time,
-// so the whole set is vendored up front — a partial set leaves the CLI unloadable.
+// The workspace CLI is registry-driven and lazily loads handlers. These modules
+// carry no commands.json yet, so their commands (fd-new, ship, …) route via the
+// dispatcher's deprecated legacy fallback, which needs each module's handler file
+// present on disk. Vendoring the set makes those handlers available.
 const CLI_MODULES = [
   'fd',
   'ship',
@@ -111,11 +113,12 @@ async function exists(path: string): Promise<boolean> {
 // Smoke Test Suite
 // ---------------------------------------------------------------------------
 
-// Drives the workspace CLI (`scripts/<agent>.js`), which statically requires
-// the fd, ship, session, session-review, worktree, sync-branch, and slack-status
-// skill command modules at load time, plus `scripts/task` and the session
-// lifecycle scripts. The scaffold ships no baked-in skills — `straper add`
-// vendors the modules from the registry in beforeAll so the CLI can boot.
+// Drives the workspace CLI (`scripts/<agent>.js`), which discovers its commands
+// from installed skills and lazily loads handlers. The fd, ship, session,
+// session-review, worktree, sync-branch, and slack-status commands route via the
+// dispatcher's legacy fallback until those modules ship commands.json. The
+// scaffold ships no baked-in skills — `straper add` vendors the modules from the
+// registry in beforeAll so their handlers are present.
 describe(
   'smoke test — scaffolded workspace end-to-end',
   () => {

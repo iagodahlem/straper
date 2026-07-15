@@ -1,0 +1,12 @@
+[
+  {
+    "command": "flagged",
+    "summary": "Flagged fixture command.",
+    "handler": "flagged.js#run",
+    "flags": [
+      { "flag": "--mode <fast|slow>", "summary": "Execution mode." },
+      { "flag": "--verbose", "summary": "Verbose output." }
+    ],
+    "subcommands": [{ "name": "go", "summary": "Run it." }]
+  }
+]
