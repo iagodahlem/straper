@@ -18,7 +18,21 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const { ROOT_DIR, logSkillMetric, shellQuote } = require('./cli-utils.js');
+const { ROOT_DIR, shellQuote } = require('./cli-utils.js');
+
+// Skill metrics belong to the skills framework, not the runtime baseline. When
+// the framework ships a JS sink (skills/lib/metrics.js) we delegate to it; with
+// no skills installed this is a no-op, so a zero-skill workspace still runs.
+function logSkillMetric(...metricArgs) {
+  try {
+    const sink = require(path.join(ROOT_DIR, 'skills', 'lib', 'metrics.js'));
+    if (sink && typeof sink.logSkillMetric === 'function') {
+      sink.logSkillMetric(...metricArgs);
+    }
+  } catch {
+    // No skills-framework metrics sink installed — metrics are disabled.
+  }
+}
 
 const AGENT_NAME = path.basename(process.argv[1] || 'agent', '.js');
 const SKILLS_DIR = path.join(ROOT_DIR, 'skills');
