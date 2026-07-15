@@ -1,0 +1,12 @@
+[
+  {
+    "command": "worktree",
+    "summary": "Create a git worktree under workspaces/ for a new branch.",
+    "handler": "worktree-commands.js#commandWorktree",
+    "args": "<repo> <branch-name>",
+    "flags": [
+      { "flag": "--base <branch>", "summary": "Base branch/ref (default: the remote's default branch, else main)." },
+      { "flag": "--dry-run", "summary": "Preview without fetching or creating the worktree." }
+    ]
+  }
+]
