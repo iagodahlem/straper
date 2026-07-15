@@ -105,6 +105,14 @@ Archive a completed feature design.
 -> Archives FD-005 even with pending sub-items
 ```
 
+## Bundled files
+
+The module is self-contained. It ships:
+
+- `skills/fd/providers.json.example` — a template for the worker provider/profile map (`claude`/`codex`, `fast`/`strong`). `worker` reads the live config from `config/providers.json` at the workspace root; copy this example there and edit the models to configure providers.
+- `skills/fd/designs/TEMPLATE.md` and `skills/fd/designs/INDEX.md` — seed copies of the feature-design template and index. `fd-new` renders `designs/TEMPLATE.md` from the workspace when it exists and falls back to the bundled `skills/fd/designs/TEMPLATE.md`, so a fresh workspace can create designs before it has its own `designs/` seed.
+- `skills/fd/prompts/` — the `fd-new` and `fd-work` prompt templates.
+
 ## Graceful Degradation
 
 If the `task` skill is unavailable, the `new` and `close` commands still work but skip task log updates. The `status` command omits worker tracking information for designs without linked tasks.

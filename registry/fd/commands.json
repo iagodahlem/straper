@@ -1,0 +1,77 @@
+[
+  {
+    "command": "fd-new",
+    "summary": "Create a feature design and append it to designs/INDEX.md.",
+    "handler": "fd-commands.js#commandFdNew",
+    "args": "<title>",
+    "flags": [
+      { "flag": "--effort <small|medium|large>", "summary": "Sizing estimate (default: medium)." },
+      { "flag": "--priority <low|medium|high|critical>", "summary": "Priority (default: medium)." },
+      { "flag": "--repo <repo>", "summary": "Repo hint recorded in the design frontmatter." },
+      { "flag": "--provider-hint <claude|codex>", "summary": "Preferred worker provider hint." },
+      { "flag": "--profile-hint <fast|strong>", "summary": "Preferred worker profile hint." },
+      { "flag": "--branch-suffix <suffix>", "summary": "Branch-name suffix hint recorded in the design." },
+      { "flag": "--verification-command <command>", "summary": "Verification command hint recorded in the design." },
+      { "flag": "--dry-run", "summary": "Preview without writing files." }
+    ],
+    "metric": { "skill": "fd", "action": "new" }
+  },
+  {
+    "command": "fd-new-prompt",
+    "summary": "Render the fd-new prompt (for an agent) instead of creating the file directly.",
+    "handler": "fd-commands.js#commandFdNewPrompt",
+    "args": "<title>",
+    "flags": [
+      { "flag": "--effort <small|medium|large>", "summary": "Sizing estimate (default: medium)." },
+      { "flag": "--priority <low|medium|high|critical>", "summary": "Priority (default: medium)." },
+      { "flag": "--repo <repo>", "summary": "Repo hint recorded in the design frontmatter." },
+      { "flag": "--provider-hint <claude|codex>", "summary": "Preferred worker provider hint." },
+      { "flag": "--profile-hint <fast|strong>", "summary": "Preferred worker profile hint." },
+      { "flag": "--branch-suffix <suffix>", "summary": "Branch-name suffix hint recorded in the design." },
+      { "flag": "--verification-command <command>", "summary": "Verification command hint recorded in the design." },
+      { "flag": "--dry-run", "summary": "Preview without writing files." }
+    ],
+    "metric": { "skill": "fd", "action": "new-prompt" }
+  },
+  {
+    "command": "fd-close",
+    "summary": "Archive a feature design once its sub-items and verification are complete.",
+    "handler": "fd-commands.js#commandFdClose",
+    "args": "<FD-ID>",
+    "flags": [
+      { "flag": "--force", "summary": "Archive even if sub-items or the verification checklist are incomplete." },
+      { "flag": "--dry-run", "summary": "Preview without archiving." }
+    ],
+    "metric": { "skill": "fd", "action": "close" }
+  },
+  {
+    "command": "fd-status",
+    "summary": "Show a status table of all feature designs plus detail on the active ones.",
+    "handler": "fd-commands.js#commandFdStatus",
+    "metric": { "skill": "fd", "action": "status" }
+  },
+  {
+    "command": "fd-work-prompt",
+    "summary": "Render the worker prompt for one sub-item of a feature design.",
+    "handler": "fd-commands.js#commandFdWorkPrompt",
+    "args": "<FD-ID> <SUB-ITEM>",
+    "flags": [
+      { "flag": "--base <branch>", "summary": "Override the base branch recorded in the prompt." }
+    ],
+    "metric": { "skill": "fd", "action": "work-prompt" }
+  },
+  {
+    "command": "worker",
+    "summary": "Launch a provider-aware worker (claude or codex) for a design sub-item.",
+    "handler": "fd-commands.js#commandWorker",
+    "args": "<FD-ID> <SUB-ITEM>",
+    "flags": [
+      { "flag": "--provider <claude|codex>", "summary": "Worker CLI to launch (default: the design's provider hint, else claude)." },
+      { "flag": "--profile <fast|strong>", "summary": "Model profile (default: the design's profile hint, else fast)." },
+      { "flag": "--model <model>", "summary": "Explicit model override, bypassing provider/profile config lookup." },
+      { "flag": "--base <branch>", "summary": "Base branch override passed into the work prompt." },
+      { "flag": "--dry-run", "summary": "Print the resolved command without launching the worker." }
+    ],
+    "metric": { "skill": "fd", "action": "worker" }
+  }
+]

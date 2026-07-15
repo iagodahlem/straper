@@ -1,5 +1,9 @@
 # fd changelog
 
+## 0.1.4 — 2026-07-15
+
+Publish fd v0.1.4.
+
 ## 0.1.3 — 2026-07-15
 
 Publish fd v0.1.3.
