@@ -1,0 +1,18 @@
+[
+  {
+    "command": "skill",
+    "summary": "Scaffold a new self-contained skill.",
+    "handler": "skill-commands.js#commandSkill",
+    "args": "new <name>",
+    "flags": [
+      { "flag": "--bash", "summary": "Add a backing shell script the command wrapper shells into." },
+      { "flag": "--with-config", "summary": "Add the tracked config/ bucket." },
+      { "flag": "--with-state", "summary": "Add the gitignored .state/ bucket." },
+      { "flag": "--no-script", "summary": "Prompt-only skill: skip the command wrapper." },
+      { "flag": "--dry-run", "summary": "Print the files that would be created without writing them." }
+    ],
+    "subcommands": [
+      { "name": "new", "summary": "Create skills/<name>/ with a definition, optional command wrapper, config, and state." }
+    ]
+  }
+]
