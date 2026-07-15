@@ -1,0 +1,36 @@
+[
+  {
+    "command": "ship",
+    "summary": "Verify, push, and optionally open a PR for a worktree.",
+    "handler": "ship-commands.js#commandShip",
+    "args": "[<worktree-name>]",
+    "flags": [
+      { "flag": "--base <branch>", "summary": "Base branch for the diff/PR (default: the repo's default branch)." },
+      { "flag": "--tier <1|2>", "summary": "Verification tier passed to the verify script (default: 2)." },
+      { "flag": "--quick", "summary": "Lint only changed files instead of the full lint pass." },
+      { "flag": "--skip-verify", "summary": "Skip running the verify script entirely." },
+      { "flag": "--push", "summary": "Push the branch to origin." },
+      { "flag": "--create-pr", "summary": "Open a PR via gh and link it to any tracked tasks." },
+      { "flag": "--title <title>", "summary": "Override the PR title (default: the latest commit subject)." },
+      { "flag": "--body-file <path>", "summary": "Read the PR body from a file instead of auto-generating one." },
+      { "flag": "--dry-run", "summary": "Preview the steps without running verify/push/PR creation." }
+    ]
+  },
+  {
+    "command": "ship-prompt",
+    "summary": "Render the shipping-workflow prompt instead of running it.",
+    "handler": "ship-commands.js#commandShipPrompt",
+    "args": "[<worktree-name>]",
+    "flags": [
+      { "flag": "--base <branch>", "summary": "Base branch for the diff/PR (default: the repo's default branch)." },
+      { "flag": "--tier <1|2>", "summary": "Verification tier passed to the verify script (default: 2)." },
+      { "flag": "--quick", "summary": "Lint only changed files instead of the full lint pass." },
+      { "flag": "--skip-verify", "summary": "Skip running the verify script entirely." },
+      { "flag": "--push", "summary": "Push the branch to origin." },
+      { "flag": "--create-pr", "summary": "Open a PR via gh and link it to any tracked tasks." },
+      { "flag": "--title <title>", "summary": "Override the PR title (default: the latest commit subject)." },
+      { "flag": "--body-file <path>", "summary": "Read the PR body from a file instead of auto-generating one." },
+      { "flag": "--dry-run", "summary": "Preview the steps without running verify/push/PR creation." }
+    ]
+  }
+]

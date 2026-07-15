@@ -56,9 +56,11 @@ function suggestReviewPasses(worktreePath, changedFiles) {
 }
 
 function renderTemplate(templateName, values) {
-  const templatePath = path.join(ROOT_DIR, 'prompts', `${templateName}.md`);
+  const workspaceTemplate = path.join(ROOT_DIR, 'prompts', `${templateName}.md`);
+  const moduleTemplate = path.join(__dirname, 'prompts', `${templateName}.md`);
+  const templatePath = fs.existsSync(workspaceTemplate) ? workspaceTemplate : moduleTemplate;
   if (!fs.existsSync(templatePath)) {
-    throw new Error(`Prompt template not found: prompts/${templateName}.md`);
+    throw new Error(`Prompt template not found: ${templateName}.md`);
   }
 
   let content = fs.readFileSync(templatePath, 'utf8');
