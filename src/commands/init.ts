@@ -4,7 +4,6 @@ import {
   copyFile,
   mkdir,
   readdir,
-  readFile,
   stat,
   symlink,
   writeFile,
@@ -131,46 +130,32 @@ export async function init(args: InitArgs): Promise<void> {
 
   // ---- 8. Process scaffold/templates/ ----
   const templatesDir = join(SCAFFOLD_DIR, 'templates')
-  await processScaffoldDir(templatesDir, workspaceDir, vars)
+  if (await dirExists(templatesDir)) {
+    await processScaffoldDir(templatesDir, workspaceDir, vars)
+  }
 
   // ---- 9. Process scaffold/claude/ -> .claude/ ----
   const claudeDir = join(SCAFFOLD_DIR, 'claude')
   const dotClaudeDir = join(workspaceDir, '.claude')
-  await processScaffoldDir(claudeDir, dotClaudeDir, vars)
+  if (await dirExists(claudeDir)) {
+    await processScaffoldDir(claudeDir, dotClaudeDir, vars)
+  }
 
   // ---- 10. Copy scaffold/scripts/ -> scripts/ ----
   const scriptsSource = join(SCAFFOLD_DIR, 'scripts')
   const scriptsDest = join(workspaceDir, 'scripts')
-  await copyWithRename(scriptsSource, scriptsDest, vars)
-
-  // ---- 11. Copy scaffold/schemas/ -> tasks/ ----
-  const schemasSource = join(SCAFFOLD_DIR, 'schemas')
-  const tasksDest = join(workspaceDir, 'tasks')
-  await mkdir(tasksDest, { recursive: true })
-  const schemaEntries = await readdir(schemasSource)
-  for (const entry of schemaEntries) {
-    const srcPath = join(schemasSource, entry)
-    const destName = entry === 'task-schema.json' ? 'schema.json' : entry
-    await copyFile(srcPath, join(tasksDest, destName))
+  if (await dirExists(scriptsSource)) {
+    await copyWithRename(scriptsSource, scriptsDest, vars)
   }
 
-  // ---- 12. Copy scaffold/designs/ -> designs/ ----
-  const designsSource = join(SCAFFOLD_DIR, 'designs')
-  const designsDest = join(workspaceDir, 'designs')
-  await copyWithRename(designsSource, designsDest, vars)
+  // Skill-owned scaffold trees (schemas/task, designs/fd, config/fd, prompts/ship
+  // + session-review) are no longer baked into the workspace — the modules ship
+  // them on `straper add`. Only the runtime baseline (templates, claude, scripts)
+  // is scaffolded here; every copy step is guarded so a missing source dir is a
+  // graceful skip rather than an ENOENT.
 
-  // ---- 13. Process scaffold/config/ -> config/ ----
-  const configSource = join(SCAFFOLD_DIR, 'config')
-  const configDest = join(workspaceDir, 'config')
-  await processScaffoldDir(configSource, configDest, vars)
-
-  // ---- 13b. Copy scaffold/prompts/ -> prompts/ (agent-name substitution only) ----
-  const promptsSource = join(SCAFFOLD_DIR, 'prompts')
-  const promptsDest = join(workspaceDir, 'prompts')
-  await copyWithAgentSubstitution(promptsSource, promptsDest, vars)
-
-  // ---- 14. Create empty directories ----
-  const emptyDirs = ['memory', 'plans', 'repos', 'workspaces', 'agents', 'patches']
+  // ---- 11. Create empty directories ----
+  const emptyDirs = ['tasks', 'memory', 'plans', 'repos', 'workspaces', 'agents', 'patches']
   for (const dir of emptyDirs) {
     const dirPath = join(workspaceDir, dir)
     await mkdir(dirPath, { recursive: true })
@@ -188,12 +173,20 @@ export async function init(args: InitArgs): Promise<void> {
   // ---- 15. Create .githooks/pre-commit ----
   const githooksDir = join(workspaceDir, '.githooks')
   await mkdir(githooksDir, { recursive: true })
+  // Task validation is owned by the task module (skills/task/validate.js). The
+  // hook checks for it at runtime so a skill-less workspace commits cleanly and
+  // `straper add task` later wires validation in with no hook edit.
   const preCommitContent = `#!/usr/bin/env bash
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
 
-"$ROOT_DIR/scripts/validate-tasks.sh"
+VALIDATOR="$ROOT_DIR/skills/task/validate.js"
+if [ -f "$VALIDATOR" ]; then
+  node "$VALIDATOR"
+else
+  echo "task module not installed — skipping task validation"
+fi
 `
   await writeFile(join(githooksDir, 'pre-commit'), preCommitContent, { mode: 0o755 })
 
@@ -311,6 +304,16 @@ function isNodeError(err: unknown): err is NodeJS.ErrnoException {
   return err instanceof Error && 'code' in err
 }
 
+/** True when `dir` exists and is a directory — used to guard optional scaffold copy steps. */
+async function dirExists(dir: string): Promise<boolean> {
+  try {
+    return (await stat(dir)).isDirectory()
+  } catch (err: unknown) {
+    if (isNodeError(err) && err.code === 'ENOENT') return false
+    throw err
+  }
+}
+
 /**
  * Recursively make all .sh files and the agent-named CLI wrapper executable.
  */
@@ -328,29 +331,6 @@ async function makeExecutable(dir: string): Promise<void> {
       (!entry.includes('.') && info.size > 0)
     ) {
       await chmod(fullPath, 0o755)
-    }
-  }
-}
-
-/**
- * Copy files with agent_name substitution in both filenames and content.
- * Replaces only {{agent_name}} and {{agent_display_name}}.
- * Other {{placeholders}} are runtime variables and must be preserved.
- */
-async function copyWithAgentSubstitution(source: string, dest: string, vars: TemplateVariables): Promise<void> {
-  await mkdir(dest, { recursive: true })
-  const entries = await readdir(source)
-  for (const entry of entries) {
-    const srcPath = join(source, entry)
-    const destName = entry.replaceAll('{{agent_name}}', vars.agent_name)
-    const info = await stat(srcPath)
-    if (info.isDirectory()) {
-      await copyWithAgentSubstitution(srcPath, join(dest, destName), vars)
-    } else {
-      let content = await readFile(srcPath, 'utf-8')
-      content = content.replaceAll('{{agent_name}}', vars.agent_name)
-      content = content.replaceAll('{{agent_display_name}}', vars.agent_display_name)
-      await writeFile(join(dest, destName), content, 'utf-8')
     }
   }
 }
@@ -373,7 +353,6 @@ function printGettingStarted(opts: {
     '    preferences.json   Workspace conventions',
     `    scripts/${name}.js  CLI orchestrator`,
     '    tasks/             Task tracking',
-    '    designs/           Feature designs',
     '',
     '  Customize your workspace:',
     '    Open preferences.json to configure:',
@@ -393,7 +372,7 @@ function printGettingStarted(opts: {
     lines.push(`    ./scripts/install-cli.sh           # Install CLI to PATH`)
   }
 
-  lines.push('    ./scripts/task create "My first task"')
+  lines.push('    straper add task                   # Add the task-tracking module')
   lines.push('    # Start a session with your preferred AI assistant')
   lines.push('')
 
