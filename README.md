@@ -10,6 +10,16 @@ AI assistants forget everything between sessions. Straper fixes that by generati
 
 Skills — the reusable workflows an agent runs (`/ship`, `/fd`, `/task`, `/session-review`) — used to be baked into the scaffold, frozen at whatever version you generated. Now they live in a registry and get vendored on demand. You install exactly the skills you want, pin them in a lockfile, edit them freely, and update them without losing your edits.
 
+## Where It Came From
+
+Straper started as one hand-built agent workspace. The goal was a fleet of AI agents for side projects, but the tools that made that possible weren't usable at work — a company security policy blocked the path they needed. So the work agent got built a different way: as a plain markdown workspace, modeled on the same patterns — an identity file, memory files, daily logs — but with no framework and no service behind it.
+
+That was the breakthrough. A workspace that was just files an agent reads and writes turned out to be enough to give it real continuity across sessions, and it proved itself the only way that matters: months of daily use. Once one project had an agent that remembered, the obvious next thought was wanting one for every project.
+
+Rather than copy the workspace by hand each time, the answer was to build a generator — and the first workspace's own agent built it. The workspace kept running as the upstream: as its patterns matured into reusable skills, those skills were extracted into a versioned registry so every generated workspace could pull them and stay up to date.
+
+Straper is that system, generalized. The generator scaffolds the workspace; the registry keeps its skills current. What you get is the distillation of a workspace that earned its shape through real use, packaged so you can start there instead of from scratch.
+
 ## Quick Start
 
 Straper is npm-ready but not yet published, so there are two paths. Once it is on npm:
