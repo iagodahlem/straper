@@ -1,0 +1,9 @@
+[
+  {
+    "command": "alpha",
+    "summary": "Alpha fixture command.",
+    "handler": "alpha-commands.js#run",
+    "args": "<name>",
+    "flags": [{ "flag": "--loud", "summary": "Shout the output." }]
+  }
+]

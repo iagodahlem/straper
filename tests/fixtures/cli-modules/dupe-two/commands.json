@@ -1,0 +1,7 @@
+[
+  {
+    "command": "dup",
+    "summary": "Duplicate command from dupe-two.",
+    "handler": "dupe.js#run"
+  }
+]

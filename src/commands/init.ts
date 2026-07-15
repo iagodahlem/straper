@@ -169,11 +169,6 @@ export async function init(args: InitArgs): Promise<void> {
   const promptsDest = join(workspaceDir, 'prompts')
   await copyWithAgentSubstitution(promptsSource, promptsDest, vars)
 
-  // ---- 13c. Copy scaffold/completions/ -> completions/ (rename + content substitution) ----
-  const completionsSource = join(SCAFFOLD_DIR, 'completions')
-  const completionsDest = join(workspaceDir, 'completions')
-  await copyWithAgentSubstitution(completionsSource, completionsDest, vars)
-
   // ---- 14. Create empty directories ----
   const emptyDirs = ['memory', 'plans', 'repos', 'workspaces', 'agents', 'patches']
   for (const dir of emptyDirs) {

@@ -9,8 +9,12 @@ import { init } from '../../src/commands/init.js'
 
 const REPO_REGISTRY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'registry')
 
-// The workspace CLI statically requires every skill command module at load time,
-// so booting `scripts/<agent>.js` needs the whole set vendored.
+// The workspace CLI is registry-driven: it discovers commands from installed
+// skills/*/commands.json and lazily loads handlers. The registry modules do not
+// ship commands.json yet, so their commands route via the dispatcher's deprecated
+// legacy fallback — which registers a known command only when the module's handler
+// file exists on disk. Vendoring this set makes those handlers present so the
+// legacy commands (fd-new, ship, …) route during the transition.
 const CLI_MODULES = [
   'fd',
   'ship',
@@ -291,24 +295,46 @@ describe(
         expect(Object.keys(lock.modules)).toContain('session-review')
       })
 
-      // The workspace CLI statically requires the fd/ship/session/session-review/
-      // worktree/sync-branch/slack-status command modules at load time, so the
-      // whole set is vendored before the CLI can boot.
-      it('CLI with no arguments exits 0 and shows usage on stderr', async () => {
+      // Zero-skill boot — the star acceptance. A workspace with NO skills added
+      // must still boot the CLI: the built-ins (help, skills, completion) work
+      // even though no module contributes commands.
+      it('CLI built-ins work in a workspace with zero skills installed', async () => {
+        const wsDir = await scaffold('zerobot')
+        // No `add` — deliberately empty skills set.
+
+        const help = execSync('node scripts/zerobot.js help', {
+          cwd: wsDir, encoding: 'utf-8', stdio: 'pipe', timeout: 20_000,
+        })
+        expect(help).toContain('zerobot — workspace CLI')
+        expect(help).toContain('completion')
+
+        const completion = execSync('node scripts/zerobot.js completion bash', {
+          cwd: wsDir, encoding: 'utf-8', stdio: 'pipe', timeout: 20_000,
+        })
+        expect(completion).toContain('complete -F _zerobot_completion zerobot')
+
+        const skills = execSync('node scripts/zerobot.js skills list', {
+          cwd: wsDir, encoding: 'utf-8', stdio: 'pipe', timeout: 20_000,
+        })
+        expect(skills).toContain('No skills found')
+      })
+
+      // With the known modules vendored, their commands route via the deprecated
+      // legacy fallback (they carry no commands.json yet). The overview lists them
+      // and the CLI exits 0 with no args.
+      it('CLI with no arguments prints the overview and exits 0', async () => {
         const wsDir = await scaffold('helpbot')
         await add({ modules: CLI_MODULES, dir: wsDir, registry: REPO_REGISTRY })
-        // The CLI prints usage to stderr with no args and exits 0.
-        // execSync returns stdout; stderr is captured separately.
         const result = execSync('node scripts/helpbot.js 2>&1', {
           cwd: wsDir,
           encoding: 'utf-8',
           stdio: 'pipe',
           timeout: 20_000,
         })
-        expect(result).toContain('Usage:')
+        expect(result).toContain('helpbot — workspace CLI')
         expect(result).toContain('fd-new')
         expect(result).toContain('ship')
-        expect(result).toContain('skills')
+        expect(result).toContain('completion')
       })
 
       it('CLI skills list works', async () => {

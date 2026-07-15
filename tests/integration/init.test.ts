@@ -174,9 +174,10 @@ describe(
         }
       })
 
-      it('completions/ contains agent-named completion scripts', async () => {
-        expect(await exists(join(wsDir, 'completions', 'nova.bash'))).toBe(true)
-        expect(await exists(join(wsDir, 'completions', '_nova'))).toBe(true)
+      it('does not scaffold static completion files (generated at runtime)', async () => {
+        // The workspace CLI renders completions on demand from installed skills,
+        // so there is no static completions/ directory to drift.
+        expect(await exists(join(wsDir, 'completions'))).toBe(false)
       })
 
       it('empty directories exist with .gitkeep', async () => {
@@ -370,17 +371,11 @@ describe(
       expect(await exists(join(wsDir, 'scripts', 'bolt'))).toBe(true)
       expect(await exists(join(wsDir, 'scripts', 'bolt.js'))).toBe(true)
 
-      // Completion scripts
-      expect(await exists(join(wsDir, 'completions', 'bolt.bash'))).toBe(true)
-      expect(await exists(join(wsDir, 'completions', '_bolt'))).toBe(true)
-
       // Verify no leftover placeholder-named files
-      for (const dir of ['scripts', 'completions']) {
-        const files = await readdir(join(wsDir, dir))
-        for (const file of files) {
-          expect(file).not.toContain('{{')
-          expect(file).not.toContain('}}')
-        }
+      const files = await readdir(join(wsDir, 'scripts'))
+      for (const file of files) {
+        expect(file).not.toContain('{{')
+        expect(file).not.toContain('}}')
       }
     })
 

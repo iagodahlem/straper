@@ -1,0 +1,7 @@
+[
+  {
+    "command": "boom",
+    "summary": "Boom fixture command — its handler throws at require time.",
+    "handler": "boom-commands.js#run"
+  }
+]
