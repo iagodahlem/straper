@@ -129,6 +129,16 @@ The pointers carry identical content and just say "read `skills/<name>/<name>.md
 
 Module authors push a workspace skill back into a registry checkout with `straper publish <module>`. It is gated: the workspace must carry a scrub engine and gate config, the skill must be committed and self-contained (every cross-skill reference declared as a dependency), and the command opens a review branch rather than committing to the registry directly. Version numbers bump automatically.
 
+## Two CLIs: `straper` and `<agent>`
+
+There are two distinct command-line tools in play, and they must not be confused.
+
+`straper` is the npm tool. It scaffolds a workspace (`straper init`) and runs the module lifecycle (`straper add`, `update`, `use`, `publish`, `status`). It is TypeScript compiled to `dist/`, ships with the registry, and is what you run *from outside* a workspace to create or maintain one. It is authored in this repository.
+
+`<agent>` (e.g. `nova`, whatever you named the agent) is the workspace CLI — `scripts/<agent>.js`. It is generated into each workspace, is thin plain JS with no build step, and is registry-driven: at invocation it discovers its commands by scanning the *installed* skill modules under `skills/*/commands.json`, then lazily loads only the handler for the command you ran. Three built-ins always work even in a workspace with zero skills installed — `help`, `skills`, and `completion`. A module contributes its commands through the `commands.json` contract; the workspace CLI has no hardcoded knowledge of any skill.
+
+See [workspace-cli.md](workspace-cli.md) for the `commands.json` contract and the discovery/routing model.
+
 ## How They Fit Together
 
 Here is the lifecycle of a typical workday using an agent workspace:
