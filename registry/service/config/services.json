@@ -1,0 +1,34 @@
+{
+  "services_dir": ".state",
+  "log_dir": ".state/logs",
+  "retention_days": 7,
+  "readiness_timeout_secs": 90,
+  "stop_grace_secs": 10,
+  "poll_interval_secs": 0.5,
+  "bands": {
+    "web-app": {
+      "min": 47100,
+      "max": 47199
+    },
+    "ui-assets": {
+      "min": 47200,
+      "max": 47299
+    },
+    "web-alt": {
+      "min": 47300,
+      "max": 47399
+    },
+    "storybook": {
+      "min": 47400,
+      "max": 47499
+    },
+    "api": {
+      "min": 47500,
+      "max": 47899
+    },
+    "generic": {
+      "min": 47900,
+      "max": 47999
+    }
+  }
+}
