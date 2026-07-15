@@ -1,9 +1,9 @@
 {
   "name": "investigate",
   "type": "skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": [],
   "config_keys": [],
-  "source_commit": "09f64ae7c640b3678a65de98ef4d8c4a008d6d24",
-  "published_at": "2026-07-15T20:28:08.389Z"
+  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
+  "published_at": "2026-07-15T21:18:22.254Z"
 }

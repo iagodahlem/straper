@@ -1,0 +1,18 @@
+[
+  {
+    "command": "investigate",
+    "summary": "Sync repos/<repo> to origin/main, or check out a branch/ref into investigations/.",
+    "handler": "investigate-commands.js#commandInvestigate",
+    "args": "<repo>",
+    "flags": [
+      { "flag": "--branch <name>", "summary": "Check out this branch into investigations/<repo>--<slug>/ instead of syncing main." },
+      { "flag": "--ref <ref>", "summary": "Check out this ref (sha/tag) into investigations/<repo>--ref-<sha>/." },
+      { "flag": "--dry-run", "summary": "Preview without fetching/resetting/checking out." }
+    ],
+    "subcommands": [
+      { "name": "list", "summary": "List active investigation worktrees." },
+      { "name": "clean", "summary": "Remove stale investigation worktrees (default: older than 14 days)." }
+    ],
+    "metric": { "skill": "investigate", "actionFromArg": true }
+  }
+]
