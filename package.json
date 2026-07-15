@@ -1,0 +1,61 @@
+{
+  "name": "straper",
+  "version": "0.1.0",
+  "description": "The agent that keeps the harness in place. Scaffold, configure, and maintain AI agent workspaces.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Iago Dahlem",
+  "homepage": "https://github.com/iagodahlem/straper#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iagodahlem/straper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iagodahlem/straper/issues"
+  },
+  "keywords": [
+    "cli",
+    "scaffold",
+    "ai-agents",
+    "agent",
+    "workspace",
+    "skills",
+    "claude",
+    "codex",
+    "generator",
+    "boilerplate"
+  ],
+  "bin": {
+    "straper": "./bin/straper"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "vitest run --project e2e",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/ tests/ --no-error-on-unmatched-pattern",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build && pnpm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "registry",
+    "scaffold",
+    "!dist/**/__tests__/**"
+  ],
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

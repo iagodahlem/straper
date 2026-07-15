@@ -1,0 +1,30 @@
+{
+  "agent_name": "{{agent_name}}",
+  "agent_display_name": "{{agent_display_name}}",
+  "commits": {
+    "style": "conventional",
+    "include_footer": false,
+    "include_co_authored_by": false,
+    "sign_off": false,
+    "skip_hooks_env": ""
+  },
+  "branches": {
+    "prefix": "",
+    "format": "{prefix}{name}"
+  },
+  "worktrees": {
+    "naming": "{repo}--{branch}",
+    "base_dir": "workspaces"
+  },
+  "subagents": {
+    "max_parallel_read": 5,
+    "max_parallel_write": 1
+  },
+  "session": {
+    "auto_commit": true,
+    "daily_memory_logs": true
+  },
+  "github": {
+    "org": ""
+  }
+}

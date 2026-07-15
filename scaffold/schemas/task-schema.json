@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "status", "created_at", "updated_at"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^TASK-[0-9]{3}$",
+      "description": "Unique task ID, format: TASK-001"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["backlog", "in_progress", "blocked", "in_review", "done"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "linear_ticket": {
+      "type": "string",
+      "description": "External ticket ID, e.g. PROJ-1234"
+    },
+    "design": {
+      "description": "Linked feature design ID, e.g. FD-001",
+      "anyOf": [
+        { "type": "string", "pattern": "^FD-\\d{3}$" },
+        { "type": "null" }
+      ]
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^TASK-\\d{3}$" },
+      "description": "Task IDs this task depends on"
+    },
+    "sub_items": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]+[0-9]+$" },
+      "description": "Linked feature design sub-items tracked on this task"
+    },
+    "prs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "number", "status"],
+        "properties": {
+          "repo": { "type": "string" },
+          "number": {
+            "anyOf": [
+              { "type": "integer", "minimum": 1 },
+              { "type": "null" }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "open", "approved", "changes_requested", "merged", "closed"]
+          }
+        }
+      }
+    },
+    "workers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sub_item", "provider", "profile", "status", "started_at", "updated_at"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "sub_item": { "type": "string", "pattern": "^[A-Z]+[0-9]+$" },
+          "provider": {
+            "type": "string",
+            "enum": ["claude", "codex"]
+          },
+          "profile": {
+            "type": "string",
+            "enum": ["fast", "strong"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["planned", "running", "blocked", "stopped", "done", "failed"]
+          },
+          "repo": { "type": "string" },
+          "branch": { "type": "string" },
+          "worktree": { "type": "string" },
+          "model": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "branches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "name"],
+        "properties": {
+          "repo": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "worktrees": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Active worktree paths in workspaces/"
+    },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["date", "entry"],
+        "properties": {
+          "date": { "type": "string", "format": "date-time" },
+          "entry": { "type": "string" }
+        }
+      },
+      "description": "Chronological log of progress, updated across sessions"
+    },
+    "context": {
+      "type": "string",
+      "description": "Free-form notes, decisions, and context for continuity"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

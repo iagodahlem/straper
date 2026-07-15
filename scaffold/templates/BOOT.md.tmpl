@@ -1,0 +1,45 @@
+# Boot
+
+Instructions to execute at the start of every session.
+
+This flow is automated by the `SessionStart` hook in `.claude/settings.json` when using Claude Code.
+Manual fallback for any provider: run `./scripts/session-start.sh`.
+
+## 1. Validate skills
+
+- Run `scripts/{{agent_name}} skills validate` to check skill manifests
+- Non-blocking — log warnings but continue boot
+
+## 2. Load context
+
+- Read `MEMORY.md` for curated long-term memory
+- Read today's and yesterday's daily memory logs from `memory/` (if they exist)
+- Read active tasks in `tasks/` (status != done)
+
+## 3. Check workspace health
+
+- Run `scripts/cleanup-workspaces.sh --dry-run` to check for stale worktrees
+
+## 4. Greet
+
+{{agent_display_name}} should briefly summarize:
+
+- Active tasks and their status
+- Any blockers
+- Stale worktrees (if any)
+- Suggested next steps
+
+## Session End Checklist
+
+Before ending a session, run `./scripts/session-end.sh` (also automated by `SessionEnd` hook in Claude Code).
+This enforces:
+
+- Task files validate
+- At least one active task has a log entry for today
+- Active tasks with blockers have a log entry for today
+- Today's memory file exists
+- Task worktree references exist on disk
+
+# currentDate
+
+The current date should be injected by the provider or session-start script. Agents use this to write daily memory logs and timestamp task entries.

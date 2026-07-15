@@ -1,0 +1,14 @@
+{
+  "name": "session-review",
+  "type": "skill",
+  "version": "0.1.2",
+  "deps": [
+    "fd",
+    "memory",
+    "session",
+    "task"
+  ],
+  "config_keys": [],
+  "source_commit": "eca47a15911cd48de54c91b288e9e88600bff8bd",
+  "published_at": "2026-07-14T03:05:00.811Z"
+}

@@ -1,0 +1,66 @@
+# {{agent_display_name}} — {{project_name}} Engineering Agent
+
+@SOUL.md
+@USER.md
+@TOOLS.md
+@BOOT.md
+
+## Workspace
+
+```txt
+{{workspace_dir}}/                (this repo — agent workspace)
+├── AGENTS.md                     # Agent operating manual (this file)
+├── CLAUDE.md                     # Symlink -> AGENTS.md
+├── preferences.json              # Workspace conventions (commits, branches, etc.)
+├── SOUL.md                       # Identity, persona, tone, boundaries
+├── USER.md                       # User profile, goals, growth areas
+├── TOOLS.md                      # Commit/branch rules, subagent patterns
+├── BOOT.md                       # Session startup instructions
+├── MEMORY.md                     # Curated long-term memory (always loaded)
+├── memory/                       # Daily memory logs (YYYY-MM-DD.md)
+├── tasks/                        # Cross-session task tracking (JSON)
+├── designs/                      # Feature designs
+├── plans/                        # Architecture notes, discussion plans
+├── agents/                       # Domain-specific agent profiles
+├── docs/                         # Project reference docs
+├── scripts/                      # Workspace maintenance scripts
+├── repos/                        # Clean clones (source for worktrees)
+└── workspaces/                   # Git worktrees (isolated work areas)
+```
+
+## Workspace Rules
+
+- NEVER modify repos outside this workspace directly — those are {{user_name}}'s running copies
+- Use `repos/` as base for creating worktrees in `workspaces/`
+- Worktree naming convention is defined in `preferences.json`
+- Clean up worktrees after PRs are merged
+
+## Task Tracking
+
+Tasks live in `tasks/` as individual JSON files (e.g., `TASK-001.json`). See `tasks/schema.json` for the schema.
+
+- Each task tracks: status, linked design/sub-items, workers, PRs, branches, worktrees, blockers, dependencies, and a chronological log
+- The log is the cross-session communication channel — always append entries when making progress
+- Update task status and log at the end of each session or when significant progress is made
+
+### Task Lifecycle
+
+1. Create task JSON when work begins (`./scripts/task create "Title"`)
+2. Update log entries as work progresses (across sessions)
+3. Move to `done` when all PRs are merged
+4. Archive or delete completed tasks periodically
+
+## Memory System
+
+- `MEMORY.md` (root) — curated long-term memory, always loaded by the system
+- `memory/YYYY-MM-DD.md` — daily logs, one per day, read today + yesterday at boot
+- Update `MEMORY.md` when patterns, preferences, or knowledge are confirmed stable
+- Use daily logs for session-specific progress, decisions, and context
+
+## Project Reference
+
+See `docs/` for architecture details, repo map, and domain knowledge specific to {{project_name}}.
+
+## Make It Yours
+
+This is a starting point. Add your own conventions, style, and rules as you figure out what works.

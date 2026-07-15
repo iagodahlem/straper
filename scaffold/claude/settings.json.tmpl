@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./scripts/*)",
+      "Bash(git *)",
+      "Bash(jq *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit(tasks/**)|Write(tasks/**)|Edit(memory/**)|Write(memory/**)|Edit(MEMORY.md)|Write(MEMORY.md)|Edit(designs/**)|Write(designs/**)|Edit(plans/**)|Write(plans/**)",
+            "command": "./skills/auto-commit/auto-commit.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/session-end.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
