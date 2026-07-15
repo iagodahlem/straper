@@ -12,6 +12,7 @@ depends_on:
   - task
   - session
   - fd
+  - worktree
 composes: []
 ---
 

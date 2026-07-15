@@ -1,14 +1,15 @@
 {
   "name": "session-review",
   "type": "skill",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "deps": [
     "fd",
     "memory",
     "session",
-    "task"
+    "task",
+    "worktree"
   ],
   "config_keys": [],
-  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
-  "published_at": "2026-07-15T21:18:21.469Z"
+  "source_commit": "36ae96346ba9ce750e83314ac6ccf8362419106d",
+  "published_at": "2026-07-15T21:33:27.387Z"
 }

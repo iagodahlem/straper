@@ -68,7 +68,13 @@ function commandSessionReview(args) {
   const designs = readDesignIndex()
     .filter((design) => design.status !== 'archived' && design.status !== 'complete');
   const workspaceStatus = runChecked('git', ['status', '--short']).stdout.trim();
-  const cleanupOutput = runChecked(path.join(ROOT_DIR, 'scripts', 'cleanup-workspaces.sh'), ['--dry-run']).stdout.trim();
+  // Workspace script preferred (this workspace's evolved version); the copy
+  // bundled with the worktree module is the fallback for fresh workspaces.
+  const workspaceCleanup = path.join(ROOT_DIR, 'scripts', 'cleanup-workspaces.sh');
+  const cleanupScript = fs.existsSync(workspaceCleanup)
+    ? workspaceCleanup
+    : path.join(ROOT_DIR, 'skills', 'worktree', 'cleanup-workspaces.sh');
+  const cleanupOutput = runChecked(cleanupScript, ['--dry-run']).stdout.trim();
 
   console.log(`# Session Review (${today})`);
   console.log('');

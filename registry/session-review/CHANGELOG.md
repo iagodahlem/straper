@@ -1,5 +1,9 @@
 # session-review changelog
 
+## 0.1.4 — 2026-07-15
+
+Publish session-review v0.1.4.
+
 ## 0.1.3 — 2026-07-15
 
 Publish session-review v0.1.3.
