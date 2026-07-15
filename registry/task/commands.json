@@ -1,0 +1,20 @@
+[
+  {
+    "command": "task",
+    "summary": "Create and update task tracking files.",
+    "handler": "task-commands.js#commandTask",
+    "args": "<create|list|log|status|design|sub-item|worker|blocker|sync-prs>",
+    "subcommands": [
+      { "name": "create", "summary": "Create a new task." },
+      { "name": "list", "summary": "List tasks, optionally filtered." },
+      { "name": "log", "summary": "Append a log entry." },
+      { "name": "status", "summary": "Change task status (validates allowed transitions)." },
+      { "name": "design", "summary": "Link (or unlink) a feature design." },
+      { "name": "sub-item", "summary": "Track or untrack a design sub-item on this task." },
+      { "name": "worker", "summary": "Record or remove a worker dispatch on this task." },
+      { "name": "blocker", "summary": "Add or remove a blocker note." },
+      { "name": "sync-prs", "summary": "Refresh tracked PR statuses from GitHub." }
+    ],
+    "metric": { "skill": "task", "actionFromArg": true }
+  }
+]
