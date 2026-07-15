@@ -1,0 +1,36 @@
+{
+  "name": "javascript",
+  "repo": "javascript",
+  "description": "JS SDK sandbox app + UI bundle server (dev, cross-origin HMR)",
+  "toolchain": ["node", "pnpm"],
+  "modes": {
+    "sandbox": {
+      "command": "pnpm dev:sandbox",
+      "env_ports": { "web": "PORT", "asset": "UI_PORT" }
+    }
+  },
+  "default_mode": "sandbox",
+  "ports": [
+    {
+      "role": "web",
+      "var": "PORT",
+      "band": "web-app",
+      "default": 4000,
+      "entrypoint": true,
+      "readiness": { "http": "http://localhost:{port}/", "expect_status": 200 }
+    },
+    {
+      "role": "asset",
+      "var": "UI_PORT",
+      "band": "ui-assets",
+      "default": 4011,
+      "entrypoint": false,
+      "readiness": { "http": "http://localhost:{port}/npm/ui.browser.js", "expect_status": 200 }
+    }
+  ],
+  "setup": {
+    "commands": ["pnpm install", "pnpm build"],
+    "ready_when": ["node_modules", "packages/shared/dist"]
+  },
+  "env": {}
+}
