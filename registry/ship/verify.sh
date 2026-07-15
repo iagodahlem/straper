@@ -83,6 +83,15 @@ extract_repo_name() {
 
 REPO_NAME="$(extract_repo_name "$WORKTREE_NAME")"
 
+# Node PATH setup for node-based verifiers — module-local copy preferred,
+# workspace lib as fallback. Sourcing only mutates PATH, so it survives the
+# exec below and is harmless for non-node repos.
+if [ -f "${SCRIPT_DIR}/lib/node-env.sh" ]; then
+  source "${SCRIPT_DIR}/lib/node-env.sh"
+elif [ -f "${ROOT_DIR}/scripts/lib/node-env.sh" ]; then
+  source "${ROOT_DIR}/scripts/lib/node-env.sh"
+fi
+
 echo "=== VERIFY: ${WORKTREE_NAME} ==="
 echo ""
 
