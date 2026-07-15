@@ -1,0 +1,10 @@
+[
+  {
+    "command": "workspaces",
+    "summary": "List all active worktrees with branch/PR/task/staleness status.",
+    "handler": "workspaces-commands.js#commandWorkspaces",
+    "flags": [
+      { "flag": "--include-orphaned", "summary": "Also list worktrees with no linked task." }
+    ]
+  }
+]
