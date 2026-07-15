@@ -1,0 +1,17 @@
+[
+  {
+    "command": "session",
+    "summary": "Inspect and manage session records.",
+    "handler": "session-commands.js#commandSession",
+    "args": "<list|close-all|history|info <id>|resume <name-or-id>|handoff ...>",
+    "subcommands": [
+      { "name": "list", "summary": "List active sessions (flags stale ones whose PID is dead/recycled)." },
+      { "name": "close-all", "summary": "Mark every active session closed." },
+      { "name": "history", "summary": "Show the 10 most recently closed sessions." },
+      { "name": "info", "summary": "Dump one session record as JSON." },
+      { "name": "resume", "summary": "Print the `claude -r <id>` command to resume a session." },
+      { "name": "handoff", "summary": "Write, list, read, or consume structured session-to-session handoffs (handoffs/<name>.md)." }
+    ],
+    "metric": { "skill": "session", "actionFromArg": true }
+  }
+]
