@@ -1,9 +1,9 @@
 {
   "name": "auto-commit",
   "type": "skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": [],
   "config_keys": [],
-  "source_commit": "c849166d27d039b80e460536a09f1bbdd1973f72",
-  "published_at": "2026-07-12T02:46:49.216Z"
+  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
+  "published_at": "2026-07-15T21:18:23.166Z"
 }
