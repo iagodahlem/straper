@@ -56,6 +56,14 @@ Run the end-of-session review workflow: summarize work done, validate task track
 → Shows what would be reviewed and committed without making changes
 ```
 
+## Bundled prompt
+
+The module ships `skills/session-review/prompts/session-review.md`, the prompt
+template rendered by `session-review-prompt`. A workspace-level
+`prompts/session-review.md` takes precedence when present, so existing
+workspaces keep their current output; the bundled copy is the self-contained
+fallback.
+
 ## Composition
 
 This skill declares no `composes` entries. The end-of-session housekeeping that a `review-complete` pipeline would have driven — auto-commit sweep, daily-memory check, task-continuity check — is implemented directly in bash by `scripts/session-end.sh`, not via the composition engine. See that script's numbered phases for the actual checks; keep them in sync with this skill's `## Execution` section if either changes.
