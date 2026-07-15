@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 
 const { ROOT_DIR, runCommand } = require('../../scripts/lib/cli-utils.js');
@@ -18,7 +19,12 @@ function commandWorkspaces(args) {
   }
 
   const passthrough = args.filter((a) => a === '--include-orphaned');
-  const script = path.join(ROOT_DIR, 'scripts', 'cleanup-workspaces.sh');
+  // Workspace script preferred (this workspace's evolved version); the copy
+  // bundled with the worktree module is the fallback for fresh workspaces.
+  const workspaceScript = path.join(ROOT_DIR, 'scripts', 'cleanup-workspaces.sh');
+  const script = fs.existsSync(workspaceScript)
+    ? workspaceScript
+    : path.join(ROOT_DIR, 'skills', 'worktree', 'cleanup-workspaces.sh');
   const result = runCommand('bash', [script, '--dry-run', ...passthrough], { stdio: 'inherit' });
 
   if (result.status && result.status !== 0) {
