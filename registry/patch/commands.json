@@ -1,0 +1,8 @@
+[
+  {
+    "command": "patch",
+    "summary": "Export a worktree's unstaged changes as a .patch file under patches/.",
+    "handler": "patch-commands.js#commandPatch",
+    "args": "<worktree-name> [description] [-- <pathspec>...]"
+  }
+]

@@ -18,7 +18,7 @@ to your running repo at `~/Developer/<org>/<repo>/`. This is the bridge for
 handing work back without pushing a branch — you apply the patch,
 review, and commit on your side.
 
-Backed by `scripts/create-patch.sh`.
+Backed by the skill-local `skills/patch/create-patch.sh` (the module ships its own copy so it is self-contained).
 
 ## Arguments
 
