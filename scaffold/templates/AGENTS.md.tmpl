@@ -57,6 +57,50 @@ Tasks live in `tasks/` as individual JSON files (e.g., `TASK-001.json`). See `ta
 - Update `MEMORY.md` when patterns, preferences, or knowledge are confirmed stable
 - Use daily logs for session-specific progress, decisions, and context
 
+### Feedback Memory
+
+When {{user_name}} corrects a behavior — or you catch a mistake worth not repeating — capture the lesson as a durable feedback note at `memory/feedback_<slug>.md`. These are how the agent gets sharper across sessions instead of relearning the same corrections.
+
+Each feedback note carries frontmatter and a consistent body:
+
+```markdown
+---
+name: short-slug
+description: One line — the rule, stated as a rule.
+metadata:
+  type: feedback
+---
+
+**What:** the behavior to change, in one or two sentences.
+**Why:** what went wrong when it wasn't followed, and the cost.
+**How to apply:** the concrete, mechanical rule to follow next time.
+```
+
+Conventions:
+- Name the file as the lesson, not a category: `feedback_always-show-links.md`, not `feedback_notes.md`
+- Use `[[slug]]` wiki-links to connect related feedback notes
+- When a lesson recurs, append the recurrence to the existing note rather than opening a new one — recurrence is signal that self-discipline alone isn't holding and a mechanism may be needed
+
+A handful of generic starter notes ship in `memory/` — read them for the format and replace them with your own as real lessons land.
+
+## Projects
+
+For sustained, multi-PR work that spans weeks with its own roadmap and tracking surface, use a project folder as the curated hub:
+
+```
+projects/<project-name>/
+├── README.md        # Hub doc — status, owners, key links, what's where
+├── checklist.md     # Living tracking list
+├── plan.md          # Foundational plan, if one exists
+└── notes/           # Topic-specific notes, design feedback, diagrams
+```
+
+Create one when project context is spreading across `plans/`, `memory/`, `designs/`, and `tasks/` and is hard to navigate, or when work spans multiple tickets, PRs, and people. For one-off architecture notes or single-PR planning, keep using `plans/`.
+
+Workspace-wide buckets stay authoritative: durable knowledge lives in `memory/`, feature designs in `designs/`, task tracking in `tasks/`. The project README links *into* those; it doesn't duplicate them. What lives in the project folder is the curated tracking list, QA pipelines, and project-specific notes.
+
+Every project README should include: a one-line summary + current status; owners; key external links (tracker, chat, design files); and workspace cross-refs (active tasks, designs, key memories).
+
 ## Project Reference
 
 See `docs/` for architecture details, repo map, and domain knowledge specific to {{project_name}}.
