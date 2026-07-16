@@ -67,6 +67,54 @@ The handler is a plain function. It receives the argument array (everything afte
 
 Handlers are loaded lazily by absolute path, so their own relative `require()`s resolve from the skill directory as usual (e.g. `../../scripts/lib/cli-utils.js`).
 
+## Module-contributed hooks and the `hooks.json` contract
+
+Where `commands.json` lets a module contribute *workspace-CLI commands*, `hooks.json` lets a module contribute *harness hooks* — entries wired into the workspace's `.claude/settings.json`. A skill places a `hooks.json` at its module root (`skills/<name>/hooks.json`); `straper add` and `straper update` splice its entries into settings, and `straper doctor` verifies they are still there.
+
+```json
+{
+  "hooks": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command": "skills/auto-commit/auto-commit.sh"
+    },
+    {
+      "event": "SessionEnd",
+      "command": "skills/auto-commit/auto-commit.sh"
+    }
+  ]
+}
+```
+
+### Fields
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `event` | yes | The harness hook event (`PostToolUse`, `SessionEnd`, `PreToolUse`, …). |
+| `matcher` | no | The event matcher (e.g. `Edit|Write`). Defaults to `""` (match-all), the right value for session events. |
+| `command` | yes | The command string to run, workspace-relative (e.g. `skills/<name>/<script>.sh`). |
+
+Any other keys in an entry (e.g. a `description` or `scope` note) are treated as documentation and ignored by the installer — the harness hook object is just `{ "type": "command", "command": … }` under the resolved event/matcher group.
+
+### How the merge works
+
+The installer performs a **surgical JSON merge**, never a rewrite:
+
+1. It ensures `settings.hooks[event]` exists and finds (or creates) the group whose `matcher` equals the entry's matcher.
+2. It appends `{ "type": "command", "command": … }` to that group **only if** an identical command is not already present. That is what makes re-`add` idempotent.
+3. Everything else in `settings.json` — the baseline `SessionStart`/`SessionEnd` hooks, the `PreToolUse` git-safety hook, permissions, any user edits — is left byte-for-byte intact. A module command that shares a matcher group with a baseline command simply coexists in that group.
+
+### Ownership, update, and doctor
+
+Ownership is tracked in the **lockfile**, not by tagging `settings.json` with markers. Each module's `straper.lock` entry records a `hooks` array of the `(event, matcher, command)` signatures it installed. This gives three properties:
+
+- **Idempotent re-add** — the signature match in step 2 prevents duplicates.
+- **`update` can replace** — on a version bump whose `hooks.json` changed, `update` removes the previously-locked signatures and splices the new ones. When it strips a command it only removes that command; a group left empty is dropped, but a group still holding a baseline/user command is preserved.
+- **`doctor` can audit** — a lock-recorded hook that has gone missing from `settings.json` (hand-removed or clobbered) is flagged as a problem.
+
+> **Removal:** there is no `straper remove` command yet, so uninstall-time hook cleanup is not wired. When a `remove` lands, it should strip a module's locked hook signatures the same way `update` does before re-splicing.
+
 ## Legacy fallback (transitional, deprecated)
 
 Until registry modules ship their own `commands.json`, the dispatcher carries a small deprecated table mapping the known current commands (`fd-*`, `worker`, `worktree`, `sync-branch`, `ship*`, `session`, `session-review*`, `slack-status`) to their handler files. A legacy entry is registered **only** when no `commands.json` already declares that command **and** the module's handler file exists on disk. This keeps existing workspaces working through the transition without weakening the zero-skill boot guarantee (in a workspace with those modules absent, none of the entries register). Once the modules publish `commands.json`, those specs take precedence and the legacy table can be removed.

@@ -1,16 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { addMock, doctorMock, initMock, migrateMock, publishMock, statusMock, updateMock, useMock } =
-  vi.hoisted(() => ({
-    addMock: vi.fn(),
-    doctorMock: vi.fn(),
-    initMock: vi.fn(),
-    migrateMock: vi.fn(),
-    publishMock: vi.fn(),
-    statusMock: vi.fn(),
-    updateMock: vi.fn(),
-    useMock: vi.fn(),
-  }))
+const {
+  addMock,
+  doctorMock,
+  driftMock,
+  initMock,
+  migrateMock,
+  publishMock,
+  statusMock,
+  updateMock,
+  useMock,
+} = vi.hoisted(() => ({
+  addMock: vi.fn(),
+  doctorMock: vi.fn(),
+  driftMock: vi.fn(),
+  initMock: vi.fn(),
+  migrateMock: vi.fn(),
+  publishMock: vi.fn(),
+  statusMock: vi.fn(),
+  updateMock: vi.fn(),
+  useMock: vi.fn(),
+}))
 
 vi.mock('../commands/add.js', () => ({
   add: addMock,
@@ -22,6 +32,10 @@ vi.mock('../commands/use.js', () => ({
 
 vi.mock('../commands/doctor.js', () => ({
   doctor: doctorMock,
+}))
+
+vi.mock('../commands/drift.js', () => ({
+  drift: driftMock,
 }))
 
 vi.mock('../commands/init.js', () => ({
@@ -168,6 +182,18 @@ describe('cli', () => {
     await main(['doctor', '--dir', '/tmp/ws'])
 
     expect(doctorMock).toHaveBeenCalledWith({ dir: '/tmp/ws' })
+  })
+
+  it('routes drift flags to the drift command', async () => {
+    await main(['drift', '--dir', '/tmp/ws', '--quiet'])
+
+    expect(driftMock).toHaveBeenCalledWith({ dir: '/tmp/ws', quiet: true })
+  })
+
+  it('defaults drift --quiet to false', async () => {
+    await main(['drift'])
+
+    expect(driftMock).toHaveBeenCalledWith({ dir: undefined, quiet: false })
   })
 
   it('prints help including publish usage', async () => {

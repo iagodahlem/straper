@@ -20,11 +20,24 @@ export interface LockFileRef {
   sha256: string
 }
 
+/**
+ * A hook entry a module spliced into `.claude/settings.json` (from its
+ * `hooks.json`). Recorded per-module in the lock so re-add stays idempotent,
+ * `update` can replace the old entries, and `doctor` can flag a lock-recorded
+ * hook that has gone missing from settings.
+ */
+export interface InstalledHook {
+  event: string
+  matcher: string
+  command: string
+}
+
 export interface LockModuleEntry {
   version: string
   source_commit: string
   type: string
   files: LockFileRef[]
+  hooks?: InstalledHook[]
 }
 
 export interface LockFile {
@@ -175,6 +188,10 @@ export async function writeLock(workspaceDir: string, lock: LockFile): Promise<v
       source_commit: entry.source_commit,
       type: entry.type,
       files: [...entry.files].sort((a, b) => a.path.localeCompare(b.path)),
+    }
+    // Only carry the hooks field when a module actually contributed hooks.
+    if (entry.hooks && entry.hooks.length > 0) {
+      sorted.modules[key].hooks = entry.hooks
     }
   }
   await writeFile(join(workspaceDir, LOCKFILE_NAME), JSON.stringify(sorted, null, 2) + '\n', 'utf-8')

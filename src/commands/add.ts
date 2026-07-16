@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 
+import { installModuleHooks } from './hooks-install.js'
 import {
   type LockFile,
   type LockFileRef,
@@ -121,11 +122,16 @@ async function vendorModule(
 
   files.sort((a, b) => a.path.localeCompare(b.path))
 
+  // Splice any module-contributed hooks (skills/<name>/hooks.json) into the
+  // workspace's .claude/settings.json; record them in the lock for update/doctor.
+  const hooks = await installModuleHooks(ctx.workspaceDir, skillDir, name)
+
   ctx.lock.modules[name] = {
     version: manifest.version,
     source_commit: manifest.source_commit ?? '',
     type: manifest.type,
     files,
+    ...(hooks.length > 0 ? { hooks } : {}),
   }
 }
 
