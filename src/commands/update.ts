@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 
+import { replaceModuleHooks } from './hooks-install.js'
 import {
   type LockFile,
   type LockFileRef,
@@ -159,11 +160,16 @@ async function updateModule(
   }
   const files = [...skillRefs, ...pointerRefs].sort((a, b) => a.path.localeCompare(b.path))
 
+  // Re-wire module-contributed hooks: strip the previously-installed entries
+  // (from the lock) and splice the new version's hooks.json declarations.
+  const hooks = await replaceModuleHooks(ctx.workspaceDir, skillDir, name, entry.hooks ?? [])
+
   ctx.lock.modules[name] = {
     version: manifest.version,
     source_commit: manifest.source_commit ?? '',
     type: manifest.type,
     files,
+    ...(hooks.length > 0 ? { hooks } : {}),
   } satisfies LockModuleEntry
 
   const label = conflicts.length > 0 ? ` (${conflicts.length} conflict(s))` : ''

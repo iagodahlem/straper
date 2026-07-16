@@ -1,6 +1,7 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
+import { findMissingHooks } from './hooks-install.js'
 import {
   type LockModuleEntry,
   LOCKFILE_VERSION,
@@ -105,6 +106,11 @@ async function checkModule(
 
   if (!(await dirExists(baseDirFor(workspaceDir, name)))) {
     lines.push(`base store missing: .straper/base/${name}`)
+    escalate('problem')
+  }
+
+  for (const hook of await findMissingHooks(workspaceDir, entry.hooks)) {
+    lines.push(`hook not installed in .claude/settings.json: ${hook.event} ${hook.command}`)
     escalate('problem')
   }
 
