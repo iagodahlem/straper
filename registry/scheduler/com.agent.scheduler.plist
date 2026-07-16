@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.agent.scheduler — out-of-band scheduler LaunchAgent (macOS template).
+
+  This is the in-repo template. skills/scheduler/install.sh copies it to
+  ~/Library/LaunchAgents/com.agent.scheduler.plist with __AGENT_ROOT__ replaced
+  by the resolved repo root, then loads it via launchctl. Rename the label to
+  your own reverse-DNS string if you prefer.
+
+  launchd is macOS-only. On Linux there is no bundled installer — wire
+  scheduler.sh into a systemd user timer or a cron entry firing every 5 minutes
+  instead (see scheduler.md "Platform support").
+
+  - StartInterval 300 — wake every 5 minutes. Most ticks are no-ops; only a
+    genuinely-due job spends a claude -p turn.
+  - RunAtLoad — fire once immediately when loaded (and on login).
+  - /bin/bash -lc — login shell so PATH/profile is available; scheduler.sh also
+    sets PATH defensively in case no profile is sourced.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.agent.scheduler</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>__AGENT_ROOT__/skills/scheduler/scheduler.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/tmp/agent-scheduler.err</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/agent-scheduler.out</string>
+</dict>
+</plist>

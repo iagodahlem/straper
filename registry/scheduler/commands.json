@@ -1,0 +1,16 @@
+[
+  {
+    "command": "scheduler",
+    "summary": "Inspect, manually run, or install the out-of-band job scheduler.",
+    "handler": "scheduler-commands.js#commandScheduler",
+    "args": "[status|run|install] [args]",
+    "flags": [
+      { "flag": "--json", "summary": "With `status`, emit machine-readable output." }
+    ],
+    "subcommands": [
+      { "name": "status", "summary": "Aligned status table of every scheduled job (add --json for machine output)." },
+      { "name": "run", "summary": "Run one dispatcher tick in the foreground, right now." },
+      { "name": "install", "summary": "Install/load the scheduler agent and fire one tick." }
+    ]
+  }
+]
