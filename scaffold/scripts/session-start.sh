@@ -148,6 +148,70 @@ if echo "$cleanup_output" | grep -q "Stale:"; then
 fi
 stale_count="${stale_count:-0}"
 
+# ---------------------------------------------------------------------------
+# Open handoffs digest — a [Handoffs] line when handoffs/*.md exist. Genericized
+# from the upstream form: count + names. A handoff is "open" until its YAML
+# frontmatter carries a `consumed:` key. Silent when there is nothing open.
+# ---------------------------------------------------------------------------
+_handoff_is_consumed() {
+  awk '
+    BEGIN { seen_open = 0; result = 1 }
+    !seen_open { if ($0 ~ /^---[[:space:]]*$/) { seen_open = 1 } next }
+    /^---[[:space:]]*$/ { exit }
+    /^consumed:[[:space:]]*/ { result = 0; exit }
+    END { exit result }
+  ' "$1" 2>/dev/null
+}
+
+handoffs_dir="$ROOT_DIR/handoffs"
+if [ -d "$handoffs_dir" ]; then
+  handoff_names=""
+  handoff_count=0
+  shopt -s nullglob
+  for f in "$handoffs_dir"/*.md; do
+    [ -f "$f" ] || continue
+    _handoff_is_consumed "$f" && continue
+    base="$(basename "$f" .md)"
+    if [ "$handoff_count" -eq 0 ]; then
+      handoff_names="$base"
+    else
+      handoff_names="${handoff_names}, ${base}"
+    fi
+    handoff_count=$((handoff_count + 1))
+  done
+  shopt -u nullglob
+  if [ "$handoff_count" -gt 0 ]; then
+    echo
+    echo "[Handoffs] ${handoff_count} open: ${handoff_names}"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Running-services digest — a [Services] line when the service module is
+# installed. Invokes the module's `service list` through the workspace CLI (so
+# this line can't drift from what the command itself shows) and skips gracefully
+# when the module is absent or nothing is tracked.
+# ---------------------------------------------------------------------------
+if [ -d "$ROOT_DIR/skills/service" ]; then
+  svc_out="$(node "$ROOT_DIR/scripts/${AGENT_NAME}.js" service list 2>/dev/null || true)"
+  svc_rows="$(printf '%s\n' "$svc_out" | grep -cvE '^[[:space:]]*$' || true)"
+  if [ "${svc_rows:-0}" -gt 1 ]; then
+    echo
+    echo "[Services] tracked dev services (via ${AGENT_NAME} service list):"
+    printf '%s\n' "$svc_out"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Publish-drift reminder — for module PUBLISHERS only. Fires solely when this
+# workspace has a publish ledger AND the straper CLI is resolvable; a graceful
+# skip otherwise (most consumer workspaces have neither). `straper drift --quiet`
+# is silent when clean and prints one warning line on real drift.
+# ---------------------------------------------------------------------------
+if [ -f "$ROOT_DIR/.straper-publish.json" ] && command -v straper >/dev/null 2>&1; then
+  straper drift --dir "$ROOT_DIR" --quiet || true
+fi
+
 echo
 echo "Summary"
 echo "- Active tasks: $active_count"
