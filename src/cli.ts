@@ -1,6 +1,7 @@
 import { VERSION } from './constants.js'
 import { add } from './commands/add.js'
 import { doctor } from './commands/doctor.js'
+import { drift } from './commands/drift.js'
 import { init } from './commands/init.js'
 import { migrate } from './commands/migrate.js'
 import { publish } from './commands/publish.js'
@@ -48,6 +49,7 @@ Usage:
   straper use <module> [opts]        Print a skill for one-off session use (nothing installed)
   straper update [module...] [opts]  Update vendored modules, merging local edits
   straper doctor [options]           Check vendored module health
+  straper drift [options]            Report published skills that drifted from the ledger
   straper publish <module> [opts]    Publish a workspace skill into a registry checkout
   straper migrate [options]          Migrate an old workspace to the registry model (being reworked)
   straper status                     Show workspace status
@@ -78,6 +80,10 @@ Update options:
 
 Doctor options:
   --dir <path>          Workspace directory (default: current directory)
+
+Drift options:
+  --dir <path>          Workspace directory (default: current directory)
+  --quiet               Silent when clean; print a one-line warning only on drift (used at boot)
 
 Publish options:
   --dir <path>          Workspace directory (default: current directory)
@@ -171,6 +177,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     }
     case 'doctor': {
       await doctor({ dir: parseFlag(args, '--dir') })
+      break
+    }
+    case 'drift': {
+      await drift({ dir: parseFlag(args, '--dir'), quiet: hasFlag(args, '--quiet') })
       break
     }
     case 'status': {

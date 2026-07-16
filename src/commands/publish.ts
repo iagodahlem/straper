@@ -40,6 +40,9 @@ const EXCLUDED_DIRS = new Set(['state', 'logs', 'node_modules', '.git'])
 const JS_EXT = new Set(['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx'])
 const SH_EXT = new Set(['.sh', '.bash'])
 
+/** Workspace-root publish ledger written by `publish` and read by `drift`. */
+export const LEDGER_NAME = '.straper-publish.json'
+
 /** Pipeline failure. Thrown (not process.exit) so finally-block temp cleanup runs first. */
 class PublishError extends Error {}
 
@@ -505,6 +508,24 @@ async function computeContentHash(sourceDir: string, relFiles: string[]): Promis
   return `sha256:${hash.digest('hex')}`
 }
 
+/**
+ * Content hash of skills/<module>/ as tracked at HEAD — the SAME stage -> list ->
+ * hash path publish uses to write the ledger, so a match means "no drift since
+ * last publish." Throws when the module is not committed / cannot be staged;
+ * callers that tolerate that (drift) catch and skip the module.
+ */
+export async function hashModuleAtHead(workspaceDir: string, module: string): Promise<string> {
+  const stagingDir = await stageModuleFromHead(workspaceDir, module)
+  try {
+    // false: HEAD's archived tree is already exactly the tracked file set.
+    const relFiles = await collectModuleFiles(stagingDir, false)
+    if (relFiles.length === 0) fail(`skills/${module} has no committed files at HEAD.`)
+    return await computeContentHash(stagingDir, relFiles)
+  } finally {
+    await rm(stagingDir, { recursive: true, force: true, maxRetries: 3 })
+  }
+}
+
 function uniqueBranch(repo: string, base: string): string {
   let candidate = base
   let n = 2
@@ -544,11 +565,33 @@ async function appendChangelog(
   await writeFile(changelogPath, rebuilt.endsWith('\n') ? rebuilt : `${rebuilt}\n`, 'utf-8')
 }
 
-interface LedgerRecord {
+export interface LedgerRecord {
   version: string
   source_commit: string
   content_hash: string
   published_at: string
+}
+
+/**
+ * Ledger `modules` map, or null when the ledger is missing / empty / malformed —
+ * all of which mean "nothing published yet" (no drift, no output).
+ */
+export async function readLedgerModules(
+  workspaceDir: string,
+): Promise<Record<string, LedgerRecord> | null> {
+  let raw: string
+  try {
+    raw = await readFile(join(workspaceDir, LEDGER_NAME), 'utf-8')
+  } catch {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { modules?: unknown }
+    if (!parsed || typeof parsed.modules !== 'object' || parsed.modules === null) return null
+    return parsed.modules as Record<string, LedgerRecord>
+  } catch {
+    return null
+  }
 }
 
 async function writeLedger(
@@ -556,7 +599,7 @@ async function writeLedger(
   module: string,
   record: LedgerRecord,
 ): Promise<void> {
-  const ledgerPath = join(workspaceDir, '.straper-publish.json')
+  const ledgerPath = join(workspaceDir, LEDGER_NAME)
   let ledger: { modules: Record<string, LedgerRecord> } = { modules: {} }
   try {
     const parsed = JSON.parse(await readFile(ledgerPath, 'utf-8')) as {
