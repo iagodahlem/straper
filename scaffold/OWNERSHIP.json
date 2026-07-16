@@ -8,7 +8,11 @@
     },
     "claude/settings.json.tmpl": {
       "classification": "baseline",
-      "justification": "Baseline .claude/settings.json — SessionStart/SessionEnd hooks only. Module-contributed hooks (e.g. PostToolUse auto-commit) are wired by their modules on add, not baked in."
+      "justification": "Baseline .claude/settings.json — SessionStart/SessionEnd hooks plus the baseline PreToolUse git-safety hook. Module-contributed hooks (e.g. PostToolUse auto-commit) are wired by their modules on add, not baked in."
+    },
+    "claude/hooks/safe-force-push.sh": {
+      "classification": "baseline",
+      "justification": "Baseline git-safety PreToolUse hook: blocks an unsafe `git push --force*` that would overwrite unfetched remote commits. Pure git/jq/bash, no skill dependency — safe in a zero-skill workspace."
     },
     "scripts/{{agent_name}}": {
       "classification": "baseline",
@@ -73,6 +77,38 @@
     "templates/USER.md.tmpl": {
       "classification": "baseline",
       "justification": "User profile template."
+    },
+    "templates/agents/code-reviewer.md": {
+      "classification": "baseline",
+      "justification": "Baseline agent profile (code reviewer) scaffolded into every workspace's agents/ dir. Behavioral-convention content, no skill dependency."
+    },
+    "templates/agents/pr-preparer.md": {
+      "classification": "baseline",
+      "justification": "Baseline agent profile (PR preparer) scaffolded into every workspace's agents/ dir. Behavioral-convention content, no skill dependency."
+    },
+    "templates/agents/technical-writer.md": {
+      "classification": "baseline",
+      "justification": "Baseline agent profile (technical writer) scaffolded into every workspace's agents/ dir. Behavioral-convention content, no skill dependency."
+    },
+    "templates/memory/feedback_always-show-links.md": {
+      "classification": "baseline",
+      "justification": "Baseline behavioral-convention memory scaffolded into every workspace's memory/ dir."
+    },
+    "templates/memory/feedback_audit-the-class-not-the-instance.md": {
+      "classification": "baseline",
+      "justification": "Baseline behavioral-convention memory scaffolded into every workspace's memory/ dir."
+    },
+    "templates/memory/feedback_gloss-ids-in-human-outputs.md": {
+      "classification": "baseline",
+      "justification": "Baseline behavioral-convention memory scaffolded into every workspace's memory/ dir."
+    },
+    "templates/memory/feedback_minimal-comment-density.md": {
+      "classification": "baseline",
+      "justification": "Baseline behavioral-convention memory scaffolded into every workspace's memory/ dir."
+    },
+    "templates/memory/feedback_workers-commit-scoped.md": {
+      "classification": "baseline",
+      "justification": "Baseline behavioral-convention memory scaffolded into every workspace's memory/ dir."
     }
   }
 }

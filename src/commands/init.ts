@@ -139,6 +139,9 @@ export async function init(args: InitArgs): Promise<void> {
   const dotClaudeDir = join(workspaceDir, '.claude')
   if (await dirExists(claudeDir)) {
     await processScaffoldDir(claudeDir, dotClaudeDir, vars)
+    // Hook scripts under .claude/hooks/ must be executable (they run via the
+    // harness the same way ./scripts/*.sh do).
+    await makeExecutable(dotClaudeDir)
   }
 
   // ---- 10. Copy scaffold/scripts/ -> scripts/ ----
