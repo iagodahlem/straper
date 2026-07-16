@@ -1,0 +1,16 @@
+[
+  {
+    "command": "workspace-review",
+    "summary": "Run read-only health/drift scans (skill drift, memory integrity, tracking drift).",
+    "handler": "workspace-review-commands.js#commandWorkspaceReview",
+    "args": "[skillify <candidate>]",
+    "flags": [
+      { "flag": "--with-script", "summary": "With `skillify`, scaffold a backing command script too." },
+      { "flag": "--dry-run", "summary": "With `skillify`, print what would be created without writing." }
+    ],
+    "subcommands": [
+      { "name": "skillify", "summary": "Scaffold an acked skill candidate and print the follow-up checklist." }
+    ],
+    "metric": { "skill": "workspace-review", "actionFromArg": true }
+  }
+]

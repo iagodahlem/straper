@@ -1,0 +1,18 @@
+[
+  {
+    "command": "reminder",
+    "summary": "Track personal follow-ups in a durable ledger, with a morning digest of open items.",
+    "handler": "reminders-commands.js#commandReminder",
+    "args": "<add \"<text>\"|done <id>|list [--all]>",
+    "flags": [
+      { "flag": "--source <text>", "summary": "Where the reminder came from, recorded with `add`." },
+      { "flag": "--all", "summary": "With `list`, show every reminder instead of only open ones." }
+    ],
+    "subcommands": [
+      { "name": "add", "summary": "Append a new open reminder; prints the assigned id." },
+      { "name": "done", "summary": "Mark a reminder done (errors if unknown or already done)." },
+      { "name": "list", "summary": "List open reminders, or every reminder with --all." }
+    ],
+    "metric": { "skill": "reminder", "actionFromArg": true }
+  }
+]
