@@ -160,9 +160,11 @@ setup_missing() {
 # pnpm/node would be missing. node-env.sh puts the workspace's Node 22 bin on
 # PATH. Non-node recipes (e.g. the __test sleep) get no prefix.
 _node_path_prefix() {
-  local recipe_json="$1"
+  local recipe_json="$1" node_env
   if jq -e '(.toolchain // []) | (index("node") or index("pnpm"))' <<<"$recipe_json" >/dev/null 2>&1; then
-    printf 'source %q && ' "$WORKSPACE_ROOT/scripts/lib/node-env.sh"
+    node_env="$SKILL_DIR/lib/node-env.sh"
+    [ -f "$node_env" ] || node_env="$WORKSPACE_ROOT/scripts/lib/node-env.sh"
+    printf 'source %q && ' "$node_env"
   fi
 }
 

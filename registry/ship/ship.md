@@ -48,6 +48,15 @@ Run the full pre-PR pipeline for a worktree: typecheck and lint (and optionally 
 3. Return the output: verification results, PR URL (if created), and any suggested follow-up review steps.
 4. If the worktree is linked to a task, note the PR number in the task log.
 
+## Bundled files
+
+The module is self-contained. It ships:
+
+- `skills/ship/verify.sh` — the verifier entry point. It detects the repo from the worktree name and delegates to a `verify-<repo>.sh` sitting alongside it; add one per repo you verify. The `ship` command runs a workspace-level `scripts/verify.sh` when present and falls back to this bundled copy.
+- `skills/ship/lib/node-env.sh` — Node PATH setup sourced by the verifier (module-local copy preferred, `scripts/lib/node-env.sh` as fallback).
+- `skills/ship/lib/task-file.js` — locked task-file update helper used when linking PRs to tasks (module-local copy preferred, shared lib as fallback).
+- `skills/ship/prompts/ship.md` — the shipping-workflow prompt template rendered by `ship-prompt`. A workspace-level `prompts/ship.md` takes precedence when present, so existing workspaces keep their current output.
+
 ## Examples
 
 ```

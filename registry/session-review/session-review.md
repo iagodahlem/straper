@@ -12,6 +12,7 @@ depends_on:
   - task
   - session
   - fd
+  - worktree
 composes: []
 ---
 
@@ -55,6 +56,14 @@ Run the end-of-session review workflow: summarize work done, validate task track
 /session-review --dry-run
 → Shows what would be reviewed and committed without making changes
 ```
+
+## Bundled prompt
+
+The module ships `skills/session-review/prompts/session-review.md`, the prompt
+template rendered by `session-review-prompt`. A workspace-level
+`prompts/session-review.md` takes precedence when present, so existing
+workspaces keep their current output; the bundled copy is the self-contained
+fallback.
 
 ## Composition
 

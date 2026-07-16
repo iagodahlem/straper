@@ -634,7 +634,10 @@ function commandFdNew(args) {
   validateFdNewArgs({ title, effort, priority, providerHint, profileHint });
 
   const fdId = getNextFdId();
-  const templatePath = path.join(DESIGNS_DIR, 'TEMPLATE.md');
+  const workspaceTemplatePath = path.join(DESIGNS_DIR, 'TEMPLATE.md');
+  const templatePath = fs.existsSync(workspaceTemplatePath)
+    ? workspaceTemplatePath
+    : path.join(SKILL_DIR, 'designs', 'TEMPLATE.md');
   const outputPath = path.join(DESIGNS_DIR, `${fdId}.md`);
   const indexPath = path.join(DESIGNS_DIR, 'INDEX.md');
 

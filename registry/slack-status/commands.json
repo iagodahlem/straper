@@ -1,0 +1,19 @@
+[
+  {
+    "command": "slack-status",
+    "summary": "Check, clear, or set the Slack status.",
+    "handler": "slack-status-commands.js#commandSlackStatus",
+    "args": "<check|clear|clear-all|set \"<text>\">",
+    "flags": [
+      { "flag": "--emoji <emoji>", "summary": "Status emoji for `set` (default: :speech_balloon:)." },
+      { "flag": "--expires <minutes>", "summary": "Expiry in minutes for `set` (default: no expiry)." }
+    ],
+    "subcommands": [
+      { "name": "check", "summary": "Verify the Slack user token is configured and valid." },
+      { "name": "clear", "summary": "Clear the current Slack status." },
+      { "name": "clear-all", "summary": "Alias of clear." },
+      { "name": "set", "summary": "Set a Slack status (default emoji :speech_balloon:, no expiry)." }
+    ],
+    "metric": { "skill": "slack-status", "actionFromArg": true }
+  }
+]

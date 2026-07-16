@@ -1,9 +1,11 @@
 {
   "name": "workspaces",
   "type": "skill",
-  "version": "0.1.0",
-  "deps": [],
+  "version": "0.1.2",
+  "deps": [
+    "worktree"
+  ],
   "config_keys": [],
-  "source_commit": "09f64ae7c640b3678a65de98ef4d8c4a008d6d24",
-  "published_at": "2026-07-15T20:28:52.442Z"
+  "source_commit": "36ae96346ba9ce750e83314ac6ccf8362419106d",
+  "published_at": "2026-07-15T21:33:27.758Z"
 }

@@ -57,6 +57,22 @@ Auto-committing workspace changes...
   nothing to commit
 ```
 
+## Requested hooks
+
+This skill wants to run on two harness events, declared as data in
+`skills/auto-commit/hooks.json`. The skill never edits the harness config
+itself — a separate installer reads this manifest and splices the hooks in.
+
+`hooks.json` is a `{ "hooks": [ ... ] }` object; each entry is:
+
+| Field | Meaning |
+|-------|---------|
+| `event` | Harness hook event (`PostToolUse`, `SessionEnd`). |
+| `matcher` | Tool matcher for the event (e.g. `Edit\|Write`); empty string means "always". |
+| `command` | Script to run, workspace-relative (`skills/auto-commit/auto-commit.sh`). |
+| `scope` | Optional hint (`workspace-files`) telling the installer to gate the hook on workspace-owned paths so edits inside repos/worktrees never trigger a commit. |
+| `description` | Human-readable note on what the hook does. |
+
 ## Graceful Degradation
 
 If no workspace changes exist, the skill is a no-op. Each group is independent — a failure in one group does not block the others. The script exits 0 in all cases where no commit was attempted; non-zero only when a `git commit` itself fails.

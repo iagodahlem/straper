@@ -15,8 +15,13 @@ const {
   resolveRepoSlug,
   runChecked,
   stripFlagArgs,
-  updateTaskFile,
 } = require('../../scripts/lib/cli-utils.js');
+
+// Module-local copy preferred; fall back to the shared lib for workspaces
+// whose cli-utils still exports it.
+const { updateTaskFile } = fs.existsSync(path.join(__dirname, 'lib', 'task-file.js'))
+  ? require('./lib/task-file.js')
+  : require('../../scripts/lib/cli-utils.js');
 
 // ---------------------------------------------------------------------------
 // Ship helpers
@@ -56,9 +61,11 @@ function suggestReviewPasses(worktreePath, changedFiles) {
 }
 
 function renderTemplate(templateName, values) {
-  const templatePath = path.join(ROOT_DIR, 'prompts', `${templateName}.md`);
+  const workspaceTemplate = path.join(ROOT_DIR, 'prompts', `${templateName}.md`);
+  const moduleTemplate = path.join(__dirname, 'prompts', `${templateName}.md`);
+  const templatePath = fs.existsSync(workspaceTemplate) ? workspaceTemplate : moduleTemplate;
   if (!fs.existsSync(templatePath)) {
-    throw new Error(`Prompt template not found: prompts/${templateName}.md`);
+    throw new Error(`Prompt template not found: ${templateName}.md`);
   }
 
   let content = fs.readFileSync(templatePath, 'utf8');
@@ -138,7 +145,9 @@ function commandShip(args) {
   const repoName = extractRepoNameFromWorktree(worktreeName);
   const branchName = getGitOutput(worktreePath, ['branch', '--show-current']);
   const resolvedBaseBranch = baseBranch || defaultBaseBranchForWorktree(worktreePath);
-  const verifyCommand = `./scripts/verify.sh ${worktreeName}${tier !== '2' ? ` --tier ${tier}` : ''}${quick ? ' --quick' : ''}`;
+  const workspaceVerifyScript = path.join(ROOT_DIR, 'scripts', 'verify.sh');
+  const verifyScript = fs.existsSync(workspaceVerifyScript) ? workspaceVerifyScript : path.join(__dirname, 'verify.sh');
+  const verifyCommand = `./${path.relative(ROOT_DIR, verifyScript)} ${worktreeName}${tier !== '2' ? ` --tier ${tier}` : ''}${quick ? ' --quick' : ''}`;
 
   if (dryRun) {
     if (!skipVerify) {
@@ -151,7 +160,7 @@ function commandShip(args) {
       console.log(`Would create PR against origin/${resolvedBaseBranch}`);
     }
   } else if (!skipVerify) {
-    const verifyArgs = [path.join(ROOT_DIR, 'scripts', 'verify.sh'), worktreeName, '--tier', tier];
+    const verifyArgs = [verifyScript, worktreeName, '--tier', tier];
     if (quick) {
       verifyArgs.push('--quick');
     }

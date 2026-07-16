@@ -38,6 +38,13 @@ Create a git worktree with a new branch from a repo and branch name. Wraps `git 
    e. Runs `git -C repos/<repo> worktree add workspaces/<worktree-name> -b <branch> <base-ref>`.
 3. Confirm the worktree was created and print the path.
 
+## Cleanup
+
+The module ships `skills/worktree/cleanup-workspaces.sh` — a companion that scans
+`workspaces/` for worktrees whose branch has merged into the source repo's
+default branch and removes the stale ones. Run it with `--dry-run` to preview,
+or `--force` to skip the confirmation prompt.
+
 ## Examples
 
 ```

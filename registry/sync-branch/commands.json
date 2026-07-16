@@ -1,0 +1,12 @@
+[
+  {
+    "command": "sync-branch",
+    "summary": "Fetch and rebase a worktree's branch onto its base branch.",
+    "handler": "sync-branch-commands.js#commandSyncBranch",
+    "args": "[<worktree-name>]",
+    "flags": [
+      { "flag": "--base <branch>", "summary": "Rebase target (default: the remote's default branch, else main)." },
+      { "flag": "--dry-run", "summary": "Preview without fetching or rebasing." }
+    ]
+  }
+]

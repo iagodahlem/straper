@@ -6,7 +6,8 @@ visibility: user
 triggers:
   - /workspaces
 cli_command: workspaces
-depends_on: []
+depends_on:
+  - worktree
 composes: []
 ---
 

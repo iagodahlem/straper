@@ -1,0 +1,18 @@
+{
+  "description": "Hooks this skill wants installed. Data only — an installer (landing separately) splices these into the harness hook config; the skill itself never edits settings.",
+  "hooks": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command": "skills/auto-commit/auto-commit.sh",
+      "scope": "workspace-files",
+      "description": "After an Edit/Write to a tracked workspace file, group and commit pending workspace changes by category. The installer is expected to gate this on workspace-owned paths (tasks/, memory/, plans/, config/, scripts/, agents/) so edits inside repos/worktrees never trigger a commit."
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "",
+      "command": "skills/auto-commit/auto-commit.sh",
+      "description": "At session end, flush any remaining uncommitted workspace changes."
+    }
+  ]
+}

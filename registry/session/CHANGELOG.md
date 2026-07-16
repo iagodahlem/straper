@@ -1,5 +1,9 @@
 # session changelog
 
+## 0.1.2 — 2026-07-15
+
+Publish session v0.1.2.
+
 ## 0.1.1 — 2026-07-14
 
 Publish session v0.1.1.

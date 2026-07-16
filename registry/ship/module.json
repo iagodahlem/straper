@@ -1,9 +1,9 @@
 {
   "name": "ship",
   "type": "skill",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "deps": [],
   "config_keys": [],
-  "source_commit": "eca47a15911cd48de54c91b288e9e88600bff8bd",
-  "published_at": "2026-07-14T03:05:00.144Z"
+  "source_commit": "36ae96346ba9ce750e83314ac6ccf8362419106d",
+  "published_at": "2026-07-15T21:33:27.246Z"
 }

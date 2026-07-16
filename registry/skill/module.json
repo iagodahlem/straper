@@ -1,9 +1,9 @@
 {
   "name": "skill",
   "type": "skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": [],
   "config_keys": [],
-  "source_commit": "f212009cbbe885c1e4dc8872d9844bccf15be0ed",
-  "published_at": "2026-07-15T20:35:25.860Z"
+  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
+  "published_at": "2026-07-15T21:18:22.827Z"
 }

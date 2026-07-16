@@ -1,0 +1,20 @@
+[
+  {
+    "command": "session-review",
+    "summary": "Print a status report of active tasks, designs, workers, and loose ends.",
+    "handler": "session-review-commands.js#commandSessionReview",
+    "flags": [
+      { "flag": "--run-session-end", "summary": "Also run the session-end script after printing the report." },
+      { "flag": "--dry-run", "summary": "With --run-session-end, print what would run instead of running it." }
+    ]
+  },
+  {
+    "command": "session-review-prompt",
+    "summary": "Render the session-review prompt instead of running it.",
+    "handler": "session-review-commands.js#commandSessionReviewPrompt",
+    "flags": [
+      { "flag": "--run-session-end", "summary": "Also run the session-end script after printing the report." },
+      { "flag": "--dry-run", "summary": "With --run-session-end, print what would run instead of running it." }
+    ]
+  }
+]

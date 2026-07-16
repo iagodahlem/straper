@@ -1,11 +1,11 @@
 {
   "name": "fd",
   "type": "skill",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "deps": [
     "task"
   ],
   "config_keys": [],
-  "source_commit": "c3e885e73b8ecdd50d42d13d9ea9e72fb157b3e9",
-  "published_at": "2026-07-15T19:17:30.872Z"
+  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
+  "published_at": "2026-07-15T21:18:21.190Z"
 }

@@ -1,0 +1,16 @@
+[
+  {
+    "command": "service",
+    "summary": "Start, track, and stop dev services with port discipline.",
+    "handler": "service-commands.js#commandService",
+    "args": "<start|stop|list|logs|status|url> [args]",
+    "subcommands": [
+      { "name": "start", "summary": "Start a recipe (config/recipes/<recipe>.json) detached, tracked in the registry." },
+      { "name": "stop", "summary": "Stop one service, or every running service." },
+      { "name": "list", "summary": "Aligned table of tracked services." },
+      { "name": "logs", "summary": "Tail (optionally follow) a service's log." },
+      { "name": "status", "summary": "Print a service's full record plus a live liveness probe." },
+      { "name": "url", "summary": "Print a service's entrypoint URL(s)." }
+    ]
+  }
+]
