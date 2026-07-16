@@ -1,0 +1,9 @@
+{
+  "name": "reminders",
+  "type": "skill",
+  "version": "0.1.0",
+  "deps": [],
+  "config_keys": [],
+  "source_commit": "f98d273c94eae02e67a2ef0b1c106164a00a14e7",
+  "published_at": "2026-07-16T00:54:44.249Z"
+}
