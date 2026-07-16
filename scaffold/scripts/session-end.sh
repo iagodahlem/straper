@@ -62,8 +62,13 @@ fi
 
 echo
 echo "[2/6] Validating task files"
-if ! ./scripts/validate-tasks.sh; then
-  FAILED=1
+TASK_VALIDATOR="$ROOT_DIR/skills/task/validate.js"
+if [[ -f "$TASK_VALIDATOR" ]]; then
+  if ! node "$TASK_VALIDATOR"; then
+    FAILED=1
+  fi
+else
+  echo "- task module not installed — skipping task validation"
 fi
 
 echo
@@ -135,13 +140,18 @@ done
 
 echo
 echo "[6/6] Auto-cleaning stale worktrees"
-cleanup_output="$(./scripts/cleanup-workspaces.sh --force 2>&1 || true)"
-if echo "$cleanup_output" | grep -q "Cleaned"; then
-  echo "$cleanup_output"
-elif echo "$cleanup_output" | grep -q "Nothing to clean"; then
-  echo "- No stale worktrees"
+CLEANUP_SCRIPT="$ROOT_DIR/skills/worktree/cleanup-workspaces.sh"
+if [[ -f "$CLEANUP_SCRIPT" ]]; then
+  cleanup_output="$("$CLEANUP_SCRIPT" --force 2>&1 || true)"
+  if echo "$cleanup_output" | grep -q "Cleaned"; then
+    echo "$cleanup_output"
+  elif echo "$cleanup_output" | grep -q "Nothing to clean"; then
+    echo "- No stale worktrees"
+  else
+    echo "- Cleanup skipped or no worktrees found"
+  fi
 else
-  echo "- Cleanup skipped or no worktrees found"
+  echo "- worktree module not installed — skipping worktree cleanup"
 fi
 
 # ---------------------------------------------------------------------------
@@ -182,7 +192,7 @@ fi
 echo ""
 if [[ "$COMPOSE_AVAILABLE" -eq 1 ]]; then
   skills_run_compose_pipeline session close 2>&1 || true
-else
+elif [[ -f "$ROOT_DIR/skills/slack-status/slack.sh" ]]; then
   # Fallback: direct slack status resolution (pre-composition behavior)
   # shellcheck source=skills/slack-status/slack.sh
   source "$ROOT_DIR/skills/slack-status/slack.sh"

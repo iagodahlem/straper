@@ -22,18 +22,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Edit(tasks/**)|Write(tasks/**)|Edit(memory/**)|Write(memory/**)|Edit(MEMORY.md)|Write(MEMORY.md)|Edit(designs/**)|Write(designs/**)|Edit(plans/**)|Write(plans/**)",
-            "command": "./skills/auto-commit/auto-commit.sh"
-          }
-        ]
-      }
-    ],
     "SessionEnd": [
       {
         "matcher": "",

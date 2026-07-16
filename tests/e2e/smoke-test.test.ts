@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { execSync } from 'node:child_process'
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, chmod, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -109,6 +109,113 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+// This scaffold-extraction PR removes the skill-owned files (fd designs +
+// provider config, ship/session-review prompts, worktree cleanup) from the base
+// scaffold. Their owning modules read them from these workspace paths TODAY and
+// will ship + self-reference them in a coupled module-side PR. Until that PR
+// lands, the e2e seeds them post-`add` to exercise the current module code.
+// Agent-name placeholders are pre-substituted here exactly as the old scaffold
+// engine did at init time (AGENT_NAME = 'smokebot').
+const FD_TEMPLATE = `---
+id: FD-XXX
+title:
+status: planned  # planned | design | open | in_progress | verification | complete | archived
+effort: medium   # small | medium | large
+priority: medium # low | medium | high | critical
+repo:
+provider_hint:
+profile_hint:
+branch_suffix:
+verification_command:
+tasks: []        # linked TASK-xxx IDs
+---
+
+## Problem
+
+[What problem are we solving? Why does it matter?]
+
+## Context
+
+[Research findings.]
+
+## Solution
+
+[Chosen approach.]
+
+## Sub-items
+
+| Step | What | Depends on | Status |
+|------|------|------------|--------|
+| A1   |      |            | todo   |
+| A2   |      |            | todo   |
+`
+const FD_INDEX = `# Feature Designs
+
+| FD | Title | Status | Effort | Priority | Tasks |
+|----|-------|--------|--------|----------|-------|
+`
+const PROVIDERS_JSON = `{
+  "providers": {
+    "claude": {
+      "command": "claude",
+      "profiles": { "fast": { "model": "sonnet" }, "strong": { "model": "opus" } }
+    },
+    "codex": {
+      "command": "codex",
+      "profiles": { "fast": { "model": "" }, "strong": { "model": "" } }
+    }
+  }
+}
+`
+const SHIP_PROMPT = `You are running the shared shipping workflow for a Smokebot worktree.
+
+- Worktree: \`{{WORKTREE_NAME}}\`
+- Base branch: \`{{BASE_BRANCH}}\`
+- Tier: \`{{TIER}}\`
+- Quick mode: \`{{QUICK_MODE}}\`
+- Skip verify: \`{{SKIP_VERIFY}}\`
+- Push branch: \`{{PUSH_BRANCH}}\`
+- Create PR: \`{{CREATE_PR}}\`
+
+Run \`./scripts/smokebot ship ...\` with the provided arguments.
+`
+const SESSION_REVIEW_PROMPT = `You are running the Smokebot end-of-session review workflow.
+
+- Run session-end script: \`{{RUN_SESSION_END}}\`
+- Dry run: \`{{DRY_RUN}}\`
+
+Run \`./scripts/smokebot session-review ...\` with the provided arguments.
+`
+
+// Minimal worktree-cleanup stub: the session-review module shells out to
+// scripts/cleanup-workspaces.sh --dry-run (moves to the worktree module post-PR).
+const CLEANUP_STUB = `#!/usr/bin/env bash
+set -euo pipefail
+echo "Active: 0  |  Stale: 0"
+echo "Nothing to clean up."
+exit 0
+`
+
+async function seedModuleOwnedBaseline(dir: string): Promise<void> {
+  const designsDir = join(dir, 'designs')
+  await mkdir(designsDir, { recursive: true })
+  await writeFile(join(designsDir, 'TEMPLATE.md'), FD_TEMPLATE, 'utf-8')
+  await writeFile(join(designsDir, 'INDEX.md'), FD_INDEX, 'utf-8')
+
+  const configDir = join(dir, 'config')
+  await mkdir(configDir, { recursive: true })
+  await writeFile(join(configDir, 'providers.json'), PROVIDERS_JSON, 'utf-8')
+
+  const promptsDir = join(dir, 'prompts')
+  await mkdir(promptsDir, { recursive: true })
+  await writeFile(join(promptsDir, 'ship.md'), SHIP_PROMPT, 'utf-8')
+  await writeFile(join(promptsDir, 'session-review.md'), SESSION_REVIEW_PROMPT, 'utf-8')
+
+  const cleanupPath = join(dir, 'scripts', 'cleanup-workspaces.sh')
+  await writeFile(cleanupPath, CLEANUP_STUB, 'utf-8')
+  await chmod(cleanupPath, 0o755)
+}
+
 // ---------------------------------------------------------------------------
 // Smoke Test Suite
 // ---------------------------------------------------------------------------
@@ -142,6 +249,7 @@ describe(
         description: 'Comprehensive smoke test workspace',
       })
       await add({ modules: CLI_MODULES, dir: wsDir, registry: REPO_REGISTRY })
+      await seedModuleOwnedBaseline(wsDir)
     })
 
     afterAll(async () => {
@@ -410,8 +518,8 @@ describe(
     // 9. Task operations
     // ----------------------------------------------------------------
     describe('task operations', () => {
-      it('creates a task via scripts/task', async () => {
-        const output = run('bash scripts/task create "Smoke test task"')
+      it('creates a task via the task module', async () => {
+        const output = run('node skills/task/task.js create "Smoke test task"')
         expect(output).toContain('Created TASK-001')
 
         const taskPath = join(wsDir, 'tasks', 'TASK-001.json')
@@ -432,7 +540,7 @@ describe(
       it('runs session-end.sh without hard-crashing', async () => {
         // session-end expects a log entry for today on active tasks.
         // Add a log entry to the task we created.
-        run('bash scripts/task log TASK-001 "Smoke test log entry"')
+        run('node skills/task/task.js log TASK-001 "Smoke test log entry"')
 
         // Commit workspace changes so auto-commit in session-end doesn't fail weirdly
         execSync('git add -A && git -c commit.gpgSign=false commit -m "pre session-end" --allow-empty', {

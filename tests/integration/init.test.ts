@@ -154,13 +154,13 @@ describe(
         expect(() => JSON.parse(content)).not.toThrow()
       })
 
-      it('tasks/schema.json exists', async () => {
-        expect(await exists(join(wsDir, 'tasks', 'schema.json'))).toBe(true)
+      it('does not bake in tasks/schema.json (the task module owns it)', async () => {
+        // tasks/ is scaffolded as an empty dir; the schema ships with `straper add task`.
+        expect(await exists(join(wsDir, 'tasks', 'schema.json'))).toBe(false)
       })
 
-      it('designs/TEMPLATE.md and designs/INDEX.md exist', async () => {
-        expect(await exists(join(wsDir, 'designs', 'TEMPLATE.md'))).toBe(true)
-        expect(await exists(join(wsDir, 'designs', 'INDEX.md'))).toBe(true)
+      it('does not scaffold a designs/ tree (the fd module owns it)', async () => {
+        expect(await exists(join(wsDir, 'designs'))).toBe(false)
       })
 
       it('scripts/ contains agent-named CLI wrapper and .js orchestrator', async () => {
@@ -168,10 +168,8 @@ describe(
         expect(await exists(join(wsDir, 'scripts', 'nova.js'))).toBe(true)
       })
 
-      it('prompts/ contains root-level prompt template files', async () => {
-        for (const file of ['ship.md', 'session-review.md']) {
-          expect(await exists(join(wsDir, 'prompts', file))).toBe(true)
-        }
+      it('does not scaffold a prompts/ tree (ship/session-review modules own their prompts)', async () => {
+        expect(await exists(join(wsDir, 'prompts'))).toBe(false)
       })
 
       it('does not scaffold static completion files (generated at runtime)', async () => {
@@ -181,7 +179,7 @@ describe(
       })
 
       it('empty directories exist with .gitkeep', async () => {
-        for (const dir of ['memory', 'plans', 'repos', 'workspaces', 'agents', 'patches']) {
+        for (const dir of ['tasks', 'memory', 'plans', 'repos', 'workspaces', 'agents', 'patches']) {
           const dirPath = join(wsDir, dir)
           const info = await stat(dirPath)
           expect(info.isDirectory()).toBe(true)
@@ -212,9 +210,6 @@ describe(
       for (const relPath of allFiles) {
         // Skip .git internals
         if (relPath.startsWith('.git/') || relPath.startsWith('.git\\')) continue
-        // Skip prompt templates — they contain runtime {{PLACEHOLDER}} variables
-        // that are resolved by the workspace CLI, not by Straper's scaffold engine
-        if (relPath.startsWith('prompts/') || relPath.startsWith('prompts\\')) continue
 
         const fullPath = join(wsDir, relPath)
         try {
@@ -247,13 +242,9 @@ describe(
       expect(prefs.agent_display_name).toBe('Nova')
     })
 
-    it('config/providers.json sets codex profiles to empty model strings', async () => {
+    it('does not scaffold config/providers.json (the fd module owns provider config)', async () => {
       const wsDir = await initWorkspace('nova')
-      const content = await readFile(join(wsDir, 'config', 'providers.json'), 'utf-8')
-      const providers = JSON.parse(content)
-
-      expect(providers.providers.codex.profiles.fast.model).toBe('')
-      expect(providers.providers.codex.profiles.strong.model).toBe('')
+      expect(await exists(join(wsDir, 'config'))).toBe(false)
     })
 
     // ------------------------------------------------------------------

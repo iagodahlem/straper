@@ -1,0 +1,78 @@
+{
+  "manifestVersion": 1,
+  "description": "Ownership manifest for scaffold/. Every file copied into a generated workspace at `straper init` time is the runtime baseline and MUST be listed here with classification \"baseline\" and a justification. Skill-owned assets (task schema, fd designs/config, ship/session-review prompts, worktree cleanup, etc.) do NOT live in scaffold/ — the modules ship them on `straper add`. A test walks scaffold/ and fails on any file missing from this manifest, so a new scaffold file is unmergeable until it is classified.",
+  "files": {
+    "OWNERSHIP.json": {
+      "classification": "baseline",
+      "justification": "This manifest itself; not copied into workspaces."
+    },
+    "claude/settings.json.tmpl": {
+      "classification": "baseline",
+      "justification": "Baseline .claude/settings.json — SessionStart/SessionEnd hooks only. Module-contributed hooks (e.g. PostToolUse auto-commit) are wired by their modules on add, not baked in."
+    },
+    "scripts/{{agent_name}}": {
+      "classification": "baseline",
+      "justification": "Per-agent CLI shim; renamed to the agent name at init. Core runtime entry, no skill dependency."
+    },
+    "scripts/{{agent_name}}.js": {
+      "classification": "baseline",
+      "justification": "Thin per-agent CLI entry that delegates to the registry-driven engine (lib/cli-runtime.js)."
+    },
+    "scripts/install-cli.sh": {
+      "classification": "baseline",
+      "justification": "Installs the workspace CLI onto PATH; part of the base workspace bootstrap."
+    },
+    "scripts/lib/cli-runtime.js": {
+      "classification": "baseline",
+      "justification": "Registry-driven CLI engine. Discovers commands from installed skills and lazily loads handlers; runs with zero skills installed."
+    },
+    "scripts/lib/cli-utils.js": {
+      "classification": "baseline",
+      "justification": "Genuinely shared runtime helpers (arg parsing, process/git/slug helpers) imported by the engine and by registry modules. Metrics and task-file mutation were removed to the skills framework and task module respectively."
+    },
+    "scripts/lib/skills.sh": {
+      "classification": "baseline",
+      "justification": "Skill framework runtime (discovery, validation, composition). Baseline substrate every module builds on."
+    },
+    "scripts/session-start.sh": {
+      "classification": "baseline",
+      "justification": "Boot script. Skill-gated steps (task validation, PR sync, worktree cleanup) are guarded on module presence and skip gracefully when absent."
+    },
+    "scripts/session-end.sh": {
+      "classification": "baseline",
+      "justification": "Session-end checklist. Skill-gated steps are guarded on module presence and skip gracefully when absent."
+    },
+    "templates/AGENTS.md.tmpl": {
+      "classification": "baseline",
+      "justification": "Core agent operating manual template."
+    },
+    "templates/BOOT.md.tmpl": {
+      "classification": "baseline",
+      "justification": "Core session boot instructions template."
+    },
+    "templates/.gitignore.tmpl": {
+      "classification": "baseline",
+      "justification": "Base workspace .gitignore."
+    },
+    "templates/MEMORY.md.tmpl": {
+      "classification": "baseline",
+      "justification": "Curated long-term memory template."
+    },
+    "templates/preferences.json.tmpl": {
+      "classification": "baseline",
+      "justification": "Workspace conventions (commits, branches, worktrees, subagents)."
+    },
+    "templates/SOUL.md.tmpl": {
+      "classification": "baseline",
+      "justification": "Agent identity/persona template."
+    },
+    "templates/TOOLS.md.tmpl": {
+      "classification": "baseline",
+      "justification": "Base tooling/commit/branch rules template."
+    },
+    "templates/USER.md.tmpl": {
+      "classification": "baseline",
+      "justification": "User profile template."
+    }
+  }
+}

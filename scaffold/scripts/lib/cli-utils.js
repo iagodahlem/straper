@@ -4,8 +4,6 @@ const { spawnSync } = require('child_process');
 
 const ROOT_DIR = path.resolve(__dirname, '..', '..');
 const TASKS_DIR = path.join(ROOT_DIR, 'tasks');
-const METRICS_DIR = path.join(ROOT_DIR, '.metrics');
-const SKILLS_METRICS_FILE = path.join(METRICS_DIR, 'skills.jsonl');
 
 // ---------------------------------------------------------------------------
 // Argument helpers
@@ -56,33 +54,6 @@ function runChecked(command, commandArgs, options = {}) {
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
-}
-
-function logSkillMetric(skill, action, trigger, durationMs, ok, error = '', model = '') {
-  try {
-    fs.mkdirSync(METRICS_DIR, { recursive: true });
-
-    const entry = {
-      skill,
-      action,
-      trigger,
-      at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      duration_ms: Number.isFinite(durationMs) ? Math.round(durationMs) : 0,
-      ok: Boolean(ok),
-    };
-
-    if (error) {
-      entry.error = error;
-    }
-
-    if (model) {
-      entry.model = model;
-    }
-
-    fs.appendFileSync(SKILLS_METRICS_FILE, `${JSON.stringify(entry)}\n`, 'utf8');
-  } catch {
-    // Metrics should never break the CLI.
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -147,56 +118,6 @@ function findLinkedTasks(repoName, branchName, worktreeName) {
     const matchesWorktree = Array.isArray(task.worktrees) && task.worktrees.includes(worktreeRef);
     const matchesBranch = Array.isArray(task.branches) && task.branches.some((branch) => branch.repo === repoName && branch.name === branchName);
     return matchesWorktree || matchesBranch;
-  });
-}
-
-function sleepMs(ms) {
-  const buffer = new SharedArrayBuffer(4);
-  const view = new Int32Array(buffer);
-  Atomics.wait(view, 0, 0, ms);
-}
-
-function withTaskFileLock(filePath, callback) {
-  const lockPath = `${filePath}.lock`;
-  const deadline = Date.now() + 5000;
-  let lockFd = null;
-
-  while (lockFd === null) {
-    try {
-      lockFd = fs.openSync(lockPath, 'wx');
-    } catch (error) {
-      if (error.code === 'EEXIST' && Date.now() < deadline) {
-        sleepMs(25);
-        continue;
-      }
-      throw new Error(`Unable to acquire task lock for ${path.basename(filePath)}: ${error.message}`);
-    }
-  }
-
-  try {
-    return callback();
-  } finally {
-    if (lockFd !== null) {
-      fs.closeSync(lockFd);
-    }
-    if (fs.existsSync(lockPath)) {
-      fs.unlinkSync(lockPath);
-    }
-  }
-}
-
-function updateTaskFile(filePath, updater) {
-  withTaskFileLock(filePath, () => {
-    const originalRaw = fs.readFileSync(filePath, 'utf8');
-    const nextTask = updater(JSON.parse(originalRaw));
-    fs.writeFileSync(filePath, `${JSON.stringify(nextTask, null, 2)}\n`, 'utf8');
-
-    const validation = runCommand(process.execPath, [path.join(ROOT_DIR, 'skills', 'task', 'validate.js'), filePath]);
-    if (validation.status !== 0) {
-      fs.writeFileSync(filePath, originalRaw, 'utf8');
-      const output = [validation.stdout, validation.stderr].filter(Boolean).join('\n').trim();
-      throw new Error(output || `Task validation failed for ${path.basename(filePath)}`);
-    }
   });
 }
 
@@ -278,15 +199,11 @@ module.exports = {
   getArgValue,
   getGitOutput,
   hasFlag,
-  logSkillMetric,
   nowIso,
   parseGitHubSlug,
   resolveRepoSlug,
   runChecked,
   runCommand,
   shellQuote,
-  sleepMs,
   stripFlagArgs,
-  updateTaskFile,
-  withTaskFileLock,
 };

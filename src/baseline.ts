@@ -7,5 +7,4 @@
 export const RUNTIME_BASELINE_V1: readonly string[] = [
   'scripts/lib/cli-utils.js',
   'scripts/lib/skills.sh',
-  'scripts/lib/node-env.sh',
 ]

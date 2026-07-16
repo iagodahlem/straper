@@ -51,7 +51,12 @@ fi
 
 echo
 echo "[2/6] Validating task files"
-./scripts/validate-tasks.sh
+TASK_VALIDATOR="$ROOT_DIR/skills/task/validate.js"
+if [[ -f "$TASK_VALIDATOR" ]]; then
+  node "$TASK_VALIDATOR"
+else
+  echo "- task module not installed — skipping task validation"
+fi
 
 echo
 echo "[3/6] Loading memory context"
@@ -118,12 +123,23 @@ fi
 
 echo
 echo "[5/6] Syncing PR statuses"
-./scripts/sync-pr-status.sh || echo "PR sync skipped."
+TASK_CLI="$ROOT_DIR/skills/task/task.js"
+if [[ -f "$TASK_CLI" ]]; then
+  node "$TASK_CLI" sync-prs || echo "PR sync skipped."
+else
+  echo "- task module not installed — skipping PR sync"
+fi
 
 echo
 echo "[6/6] Workspace health"
-cleanup_output="$(./scripts/cleanup-workspaces.sh --dry-run || true)"
-echo "$cleanup_output"
+CLEANUP_SCRIPT="$ROOT_DIR/skills/worktree/cleanup-workspaces.sh"
+if [[ -f "$CLEANUP_SCRIPT" ]]; then
+  cleanup_output="$("$CLEANUP_SCRIPT" --dry-run || true)"
+  echo "$cleanup_output"
+else
+  cleanup_output=""
+  echo "- worktree module not installed — skipping workspace health check"
+fi
 
 # Parse stale count from cleanup output
 stale_count=0
@@ -143,7 +159,7 @@ if [ "$blocked_count" -gt 0 ]; then
   echo "  1) Review blockers and update task status/logs"
 fi
 if [ "$stale_count" -gt 0 ]; then
-  echo "  2) Run ./scripts/cleanup-workspaces.sh to remove stale worktrees"
+  echo "  2) Run ./skills/worktree/cleanup-workspaces.sh to remove stale worktrees"
 fi
 if [ "$active_count" -eq 0 ]; then
   echo "  1) Create a new task JSON in tasks/ before coding"

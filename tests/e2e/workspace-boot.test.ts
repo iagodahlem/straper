@@ -319,6 +319,60 @@ describe(
         expect(skills).toContain('No skills found')
       })
 
+      // Zero-skill boot scripts — the star acceptance. A workspace with NO skills
+      // must boot end-to-end: session-start.sh runs (every skill-gated step skips
+      // gracefully), a git commit succeeds (the pre-commit hook doesn't explode
+      // without the task module), and session-end.sh completes.
+      const bootTools = ['jq', 'node', 'git', 'gh']
+      it.skipIf(!bootTools.every(hasCommand))(
+        'zero-skill workspace boots: session-start, a guarded commit, and session-end all complete',
+        async (ctx) => {
+          const wsDir = await scaffold('bootless')
+          // No `add` — deliberately empty skills set.
+
+          const commitEnv = {
+            ...process.env,
+            GH_TOKEN: '',
+            GIT_AUTHOR_NAME: 'Test User',
+            GIT_COMMITTER_NAME: 'Test User',
+            GIT_AUTHOR_EMAIL: 'test@straper.dev',
+            GIT_COMMITTER_EMAIL: 'test@straper.dev',
+          }
+
+          // 1. session-start.sh — all guards skip gracefully.
+          let startOut: string
+          try {
+            startOut = runInWorkspace('bash scripts/session-start.sh', wsDir)
+          } catch (err) {
+            const stderr = (err as { stderr?: string }).stderr ?? ''
+            if (stderr.includes('gh') || stderr.includes('Missing required tools')) {
+              ctx.skip()
+              return
+            }
+            throw err
+          }
+          expect(startOut).toContain('Boot')
+          expect(startOut).toContain('task module not installed')
+          expect(startOut).toContain('worktree module not installed')
+
+          // 2. A git commit succeeds — pre-commit hook (core.hooksPath .githooks)
+          //    must not fail when the task module is absent.
+          execSync('git add -A', { cwd: wsDir, stdio: 'pipe', env: commitEnv })
+          const commitOut = execSync(
+            'git -c commit.gpgSign=false commit -m "zero-skill boot commit" --allow-empty 2>&1',
+            { cwd: wsDir, encoding: 'utf-8', stdio: 'pipe', env: commitEnv, timeout: 20_000 },
+          )
+          expect(commitOut).toContain('task module not installed — skipping task validation')
+
+          // 3. session-end.sh completes (exit 0 — no tasks, memory seeded by start).
+          const endOut = execSync('bash scripts/session-end.sh', {
+            cwd: wsDir, encoding: 'utf-8', stdio: 'pipe', env: commitEnv, timeout: 20_000,
+          })
+          expect(endOut).toContain('Session End')
+          expect(endOut).toContain('Session-end checklist passed')
+        },
+      )
+
       // With the known modules vendored, their commands route via the deprecated
       // legacy fallback (they carry no commands.json yet). The overview lists them
       // and the CLI exits 0 with no args.
