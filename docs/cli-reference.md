@@ -11,6 +11,7 @@ straper add <module...> [opts]     Vendor registry modules into a workspace
 straper use <module> [opts]        Print a skill for one-off session use (nothing installed)
 straper update [module...] [opts]  Update vendored modules, merging local edits
 straper doctor [options]           Check vendored module health
+straper drift [options]            Report published skills that drifted from the ledger
 straper publish <module> [opts]    Publish a workspace skill into a registry checkout
 straper migrate [options]          Migrate an old workspace to the registry model (being reworked)
 straper status                     Show workspace status
@@ -120,6 +121,8 @@ straper add <module...> [options]
 
 Dependencies are installed transitively; a dependency cycle in the registry aborts the install. Each installed module prints its version and dependency count, e.g. `added session-review@0.1.2 (+4 deps)`.
 
+**Module-contributed hooks.** If a module ships a `hooks.json` (see [the workspace-CLI doc](workspace-cli.md#module-contributed-hooks-and-the-hooksjson-contract)), `add` splices its declared hook entries into the workspace's `.claude/settings.json` with a surgical JSON merge that leaves the rest of the file untouched. The merge is idempotent — re-adding a module never duplicates an entry — and the installed entries are recorded in the module's `straper.lock` entry so [`update`](#straper-update) can replace them and [`doctor`](#straper-doctor) can flag one that goes missing. If the workspace has no `.claude/settings.json` yet, one is created.
+
 ## straper use
 
 Materialize a registry skill and its dependencies into a disposable temp directory and print a ready-to-pipe prompt. Nothing is installed — no lockfile entry, no pointers, no writes into any workspace. Use it to trial a skill for a single session.
@@ -150,6 +153,8 @@ straper update [module...] [options]
 
 For each module, Straper merges three versions: the pristine baseline in `.straper/base/<name>/`, your current working files, and the new registry bytes. Files you have not touched update cleanly; files you have edited are merged; genuine conflicts get standard `<<<<<<<`/`>>>>>>>` markers and are listed at the end. A customized consumer pointer is preserved rather than overwritten. Exits non-zero if there are conflicts or errors.
 
+If the new version's `hooks.json` changed, `update` re-wires the module's hooks in `.claude/settings.json`: it strips the entries the lock recorded for the previously-installed version, then splices the new declarations.
+
 ## straper doctor
 
 Read-only health check of vendored modules. Exits non-zero only when there are real problems (missing files, unresolved conflict markers, missing pointer or baseline) — purely local modifications are reported as info, not failures.
@@ -163,6 +168,31 @@ straper doctor [--dir <path>]
 | `--dir <path>` | string | Current directory | Workspace directory. |
 
 Reports, per module: `✓` healthy, `~` locally modified (info), `✗` a problem. It also flags orphans — `skills/<name>/` directories not present in `straper.lock`.
+
+Doctor also verifies module-contributed hooks: for any module whose lock entry records hooks (see [straper add](#straper-add)), a `✗` is raised when one of those hook entries is missing from `.claude/settings.json` (hand-removed or clobbered).
+
+## straper drift
+
+Report published skills whose committed content has drifted from the publish ledger (`.straper-publish.json`). Intended for module **authors/publishers** — a consumer workspace that never publishes has no ledger and nothing to report. For each ledger entry, drift recomputes the skill's content hash from `skills/<module>/` exactly as it is tracked at `HEAD` (the same stage → hash path [`straper publish`](#straper-publish) uses to write the ledger) and compares it to the recorded hash.
+
+```bash
+straper drift [--dir <path>] [--quiet]
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--dir <path>` | string | Current directory | Workspace directory. |
+| `--quiet` | flag | off | Silent when clean; print a single warning line only on real drift. Used by the boot script. |
+
+Three categories are computed:
+
+- **drifted** — a published module whose `HEAD` content no longer matches its ledger hash (re-publish needed).
+- **missing** — a ledgered module whose `skills/<name>/` directory is gone.
+- **never published** — a `skills/<name>/` module with no ledger entry. This is a **count only**, never an error on its own — most workspace skills are never meant for the registry.
+
+**Exit code:** `0` when there is no *actionable* drift (only never-published skills, or nothing published at all); non-zero when there is at least one drifted or missing module. A module with uncommitted-only changes is not flagged — drift is always measured against `HEAD`, never the dirty working tree.
+
+`--quiet` mirrors the boot reminder: it emits nothing when clean and a single `⚠ straper publish drift — …` line on drift. The generated workspace's `session-start.sh` runs `straper drift --quiet` at boot, but only when the workspace has a ledger **and** the `straper` CLI is resolvable — otherwise it skips silently.
 
 ## straper publish
 
