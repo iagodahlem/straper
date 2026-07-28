@@ -72,6 +72,9 @@ commit_group "chore: update workspace config" "config/" "completions/"
 # Group 12: Root workspace files
 commit_group "chore: update workspace" "SOUL.md" "USER.md" "TOOLS.md" "BOOT.md" "AGENTS.md" "preferences.json" ".gitignore" ".env.example"
 
+# Group 13: Vault
+commit_group "chore: update vault" "vault/"
+
 if [ "$committed" -eq 0 ]; then
   echo "  nothing to commit"
 fi
