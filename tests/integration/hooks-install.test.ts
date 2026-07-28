@@ -180,6 +180,71 @@ describe('module-contributed hooks — add', () => {
     expect(countHook(settings, 'SessionEnd', '', './scripts/session-end.sh')).toBe(1)
     expect(countHook(settings, 'SessionEnd', '', 'skills/hooky/run.sh')).toBe(1)
   })
+
+  it('treats a "./"-prefixed hand-authored command as the same command as the module\'s un-prefixed one', async () => {
+    // A workspace whose settings.json already has a hand-authored entry with a
+    // leading "./" for the exact script the module also wants to install.
+    await mkdir(join(wsDir, '.claude'), { recursive: true })
+    await writeFile(
+      settingsPath(),
+      JSON.stringify(
+        {
+          hooks: {
+            PostToolUse: [
+              {
+                matcher: 'Edit|Write',
+                hooks: [{ type: 'command', command: './skills/auto-commit/auto-commit.sh' }],
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      ),
+    )
+    await writeModule('auto-commit-like', {
+      hooks: [{ event: 'PostToolUse', matcher: 'Edit|Write', command: 'skills/auto-commit/auto-commit.sh' }],
+    })
+    silence()
+    await add({ modules: ['auto-commit-like'], dir: wsDir, registry: registryDir })
+
+    const settings = await readSettings()
+    const groups = settings.hooks?.['PostToolUse'] ?? []
+    const group = groups.find((g) => (g.matcher ?? '') === 'Edit|Write')
+    // No unconditioned duplicate got appended — the pre-existing "./"-prefixed
+    // entry is recognized as the same command as the module's un-prefixed one.
+    expect(group?.hooks?.length).toBe(1)
+    expect(group?.hooks?.[0]?.command).toBe('./skills/auto-commit/auto-commit.sh')
+  })
+
+  it('treats an un-prefixed pre-existing command as the same command as a "./"-prefixed module declaration', async () => {
+    // Symmetric case: the workspace's existing entry has no "./" prefix, and
+    // the module declares the same command with one.
+    await mkdir(join(wsDir, '.claude'), { recursive: true })
+    await writeFile(
+      settingsPath(),
+      JSON.stringify(
+        {
+          hooks: {
+            SessionEnd: [{ matcher: '', hooks: [{ type: 'command', command: 'skills/hooky/run.sh' }] }],
+          },
+        },
+        null,
+        2,
+      ),
+    )
+    await writeModule('hooky', {
+      hooks: [{ event: 'SessionEnd', command: './skills/hooky/run.sh' }],
+    })
+    silence()
+    await add({ modules: ['hooky'], dir: wsDir, registry: registryDir })
+
+    const settings = await readSettings()
+    const groups = settings.hooks?.['SessionEnd'] ?? []
+    const group = groups.find((g) => (g.matcher ?? '') === '')
+    expect(group?.hooks?.length).toBe(1)
+    expect(group?.hooks?.[0]?.command).toBe('skills/hooky/run.sh')
+  })
 })
 
 describe('module-contributed hooks — update replaces', () => {

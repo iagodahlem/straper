@@ -86,7 +86,7 @@ A freshly scaffolded workspace has no skills yet — `skills/` fills in as you `
 | `straper use <module>` | Try a skill for one session without installing it — prints a ready-to-use prompt from a temp dir. |
 | `straper publish <module>` | You author skills — push one into a registry checkout (gated, opens a review branch). |
 | `straper status` | See the health of every workspace you have created. |
-| `straper migrate` | Move a pre-registry workspace onto the registry model (being reworked). |
+| `straper migrate` | You have an old workspace with baked-in skills — vendor the ones that match the registry, report the rest. |
 | `straper --version` / `--help` | Version and usage. |
 
 See [docs/cli-reference.md](docs/cli-reference.md) for every flag, argument, and environment variable.

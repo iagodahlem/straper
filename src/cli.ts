@@ -51,7 +51,7 @@ Usage:
   straper doctor [options]           Check vendored module health
   straper drift [options]            Report published skills that drifted from the ledger
   straper publish <module> [opts]    Publish a workspace skill into a registry checkout
-  straper migrate [options]          Migrate an old workspace to the registry model (being reworked)
+  straper migrate [options]          Migrate a pre-registry workspace onto the registry model
   straper status                     Show workspace status
   straper --version                  Print version
   straper --help                     Show this help
@@ -91,8 +91,8 @@ Publish options:
 
 Migrate options:
   --dir <path>          Workspace directory (default: current directory)
-  --dry-run             Show planned changes without modifying files
-  --skip-validate       Skip post-migration validation`)
+  --registry <dir>      Registry directory (default: STRAPER_REGISTRY_DIR or bundled registry)
+  --dry-run             Show planned changes without modifying files`)
 }
 
 function printVersion(): void {
@@ -205,8 +205,8 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     case 'migrate': {
       await migrate({
         dir: parseFlag(args, '--dir'),
+        registry: parseFlag(args, '--registry'),
         dryRun: hasFlag(args, '--dry-run'),
-        skipValidate: hasFlag(args, '--skip-validate'),
       })
       break
     }

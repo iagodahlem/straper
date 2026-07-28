@@ -61,7 +61,7 @@ Usage:
   straper update [module...] [opts]  Update vendored modules, merging local edits
   straper doctor [options]           Check vendored module health
   straper publish <module> [opts]    Publish a workspace skill into a registry checkout
-  straper migrate [options]          Migrate an old workspace to the registry model (being reworked)
+  straper migrate [options]          Migrate a pre-registry workspace onto the registry model
   straper status                     Show workspace status
   straper --version                  Print version
   straper --help                     Show this help
