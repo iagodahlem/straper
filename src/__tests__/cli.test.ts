@@ -75,12 +75,12 @@ describe('cli', () => {
   })
 
   it('routes migrate flags to the migrate command', async () => {
-    await main(['migrate', '--dir', '/tmp/old-workspace', '--dry-run'])
+    await main(['migrate', '--dir', '/tmp/old-workspace', '--registry', '/tmp/reg', '--dry-run'])
 
     expect(migrateMock).toHaveBeenCalledWith({
       dir: '/tmp/old-workspace',
+      registry: '/tmp/reg',
       dryRun: true,
-      skipValidate: false,
     })
   })
 

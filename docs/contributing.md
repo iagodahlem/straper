@@ -44,7 +44,7 @@ src/
 │   ├── update.ts          # straper update -- three-way merge of vendored modules
 │   ├── doctor.ts          # straper doctor -- vendored-module health check
 │   ├── publish.ts         # straper publish -- push a skill into a registry checkout
-│   ├── migrate.ts         # straper migrate -- pre-registry workspace migration (being reworked)
+│   ├── migrate.ts         # straper migrate -- pre-registry workspace migration
 │   ├── status.ts          # straper status -- workspace health
 │   └── registry-shared.ts # Shared registry helpers: lockfile, pointers, hashing, base store
 ├── scaffold.ts            # Scaffold template engine: {{variable}} substitution, file copy/rename

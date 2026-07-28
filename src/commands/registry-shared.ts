@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 
 import { REGISTRY_DIR } from '../constants.js'
@@ -326,6 +326,44 @@ export function toPosix(p: string): string {
 
 export function dedupe(names: string[]): string[] {
   return [...new Set(names)]
+}
+
+/** Registry module names at the top level of a registry (dirs with a module.json). */
+export async function listRegistryModules(registryRoot: string): Promise<string[]> {
+  let entries
+  try {
+    entries = await readdir(registryRoot, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const names: string[] = []
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+    if (await fileExists(join(registryRoot, entry.name, 'module.json'))) names.push(entry.name)
+  }
+  return names.sort()
+}
+
+/** Directory names directly under a workspace's skills/ (empty when skills/ is absent). */
+export async function listSkillDirs(workspaceDir: string): Promise<string[]> {
+  let entries
+  try {
+    entries = await readdir(join(workspaceDir, 'skills'), { withFileTypes: true })
+  } catch {
+    return []
+  }
+  return entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .map((entry) => entry.name)
+    .sort()
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isFile()
+  } catch {
+    return false
+  }
 }
 
 export function error(message: string): never {

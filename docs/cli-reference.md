@@ -13,7 +13,7 @@ straper update [module...] [opts]  Update vendored modules, merging local edits
 straper doctor [options]           Check vendored module health
 straper drift [options]            Report published skills that drifted from the ledger
 straper publish <module> [opts]    Publish a workspace skill into a registry checkout
-straper migrate [options]          Migrate an old workspace to the registry model (being reworked)
+straper migrate [options]          Migrate a pre-registry workspace onto the registry model
 straper status                     Show workspace status
 straper --version                  Print version
 straper --help                     Show this help
@@ -211,7 +211,7 @@ What it does: publishes exactly what HEAD tracks (the skill must be committed), 
 
 ## straper migrate
 
-Migrate a pre-registry workspace to the registry model. This command is being reworked; behavior may change.
+Migrate a pre-registry workspace onto the registry model. A pre-registry workspace has `skills/<name>/` trees that were baked in whole at scaffold time — no `straper.lock`, no `.straper/base/`. For each such tree whose name matches a published registry module, migrate vendors it through the same install path [`straper add`](#straper-add) uses: fresh registry bytes replace the old baked-in copy, transitive registry dependencies are pulled in, a pristine baseline is written under `.straper/base/<name>/`, consumer pointers are emitted, and the module is recorded in `straper.lock`.
 
 ```bash
 straper migrate [options]
@@ -220,8 +220,10 @@ straper migrate [options]
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--dir <path>` | string | Current directory | Workspace directory. |
+| `--registry <dir>` | string | Bundled registry | Registry directory. Overrides `STRAPER_REGISTRY_DIR`. |
 | `--dry-run` | flag | off | Show planned changes without modifying files. |
-| `--skip-validate` | flag | off | Skip post-migration validation. |
+
+Unlike [`init --adopt`](#straper-init---adopt), which only registers a skill that byte-matches the registry, migrate always vendors a name-matched skill — it is meant to bring an old, stale copy up to the current published version, not merely record what is already correct. A local skill with no same-named registry module is custom: migrate leaves it completely untouched and reports it, never deleting or merging it. A skill already recorded in `straper.lock` is treated as already migrated and skipped, so re-running migrate on an already-migrated workspace is safe — it either has nothing left to do or only picks up whatever is still unmatched.
 
 ## straper status
 

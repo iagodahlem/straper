@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 
 import {
@@ -10,6 +10,8 @@ import {
   buildPointerContent,
   collectDirFiles,
   deriveDescription,
+  listRegistryModules,
+  listSkillDirs,
   pointerTargets,
   readLock,
   readManifest,
@@ -158,34 +160,6 @@ async function adoptPointer(
   return ref(bytes)
 }
 
-async function listRegistryModules(registryRoot: string): Promise<string[]> {
-  let entries
-  try {
-    entries = await readdir(registryRoot, { withFileTypes: true })
-  } catch {
-    return []
-  }
-  const names: string[] = []
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) continue
-    if (await fileExists(join(registryRoot, entry.name, 'module.json'))) names.push(entry.name)
-  }
-  return names.sort()
-}
-
-async function listSkillDirs(workspaceDir: string): Promise<string[]> {
-  let entries
-  try {
-    entries = await readdir(join(workspaceDir, 'skills'), { withFileTypes: true })
-  } catch {
-    return []
-  }
-  return entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-    .map((entry) => entry.name)
-    .sort()
-}
-
 function mapsEqual(a: Map<string, Buffer>, b: Map<string, Buffer>): boolean {
   if (a.size !== b.size) return false
   for (const [key, value] of a) {
@@ -206,14 +180,6 @@ async function readFileMaybe(path: string): Promise<Buffer | undefined> {
 async function dirExists(path: string): Promise<boolean> {
   try {
     return (await stat(path)).isDirectory()
-  } catch {
-    return false
-  }
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    return (await stat(path)).isFile()
   } catch {
     return false
   }

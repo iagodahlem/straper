@@ -32,7 +32,14 @@ export interface AddArgs {
 
 export { resolveRegistryRoot }
 
-interface AddContext {
+/**
+ * Shared install-loop state: the workspace/registry being installed into, the
+ * lockfile being built up, the set of modules already vendored in this run
+ * (dependency dedup), and whether the universal .agents pointer is enabled.
+ * Exported so other commands that vendor through the same path (e.g.
+ * `migrate`) can drive `installModule` without reimplementing it.
+ */
+export interface AddContext {
   workspaceDir: string
   registryRoot: string
   lock: LockFile
@@ -69,7 +76,12 @@ export async function add(args: AddArgs): Promise<void> {
   await writeLock(workspaceDir, ctx.lock)
 }
 
-async function installModule(
+/**
+ * Vendor a module and its transitive registry dependencies into ctx.lock,
+ * skipping any module already vendored earlier in this run. Used directly by
+ * `add`, and reused as-is by `migrate` for its skills/<name> -> registry match.
+ */
+export async function installModule(
   name: string,
   ctx: AddContext,
   stack: string[],
