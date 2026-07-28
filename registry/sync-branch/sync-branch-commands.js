@@ -25,7 +25,7 @@ function commandSyncBranch(args) {
   const worktreeName = positionalArgs[0] || detectCurrentWorktreeName();
 
   if (!worktreeName) {
-    throw new Error('Usage: scripts/<agent> sync-branch [<worktree-name>] [--base <branch>]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) sync-branch [<worktree-name>] [--base <branch>]');
   }
 
   const worktreePath = path.join(ROOT_DIR, 'workspaces', worktreeName);

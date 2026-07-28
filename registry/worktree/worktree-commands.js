@@ -76,7 +76,7 @@ function commandWorktree(args) {
   const dryRun = hasFlag(args, '--dry-run');
 
   if (!repo || !branchName) {
-    throw new Error('Usage: scripts/<agent> worktree <repo> <branch-name> [--base <branch>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) worktree <repo> <branch-name> [--base <branch>] [--dry-run]');
   }
 
   const branchPrefix = readBranchPrefix();

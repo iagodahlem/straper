@@ -13,7 +13,7 @@ const {
 function commandSlackStatus(args) {
   const subcommand = args[0];
   if (!subcommand || !['check', 'clear-all', 'set', 'clear'].includes(subcommand)) {
-    throw new Error('Usage: scripts/<agent> slack-status <check|clear|clear-all|set "<text>" --emoji <emoji> [--expires <minutes>]>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) slack-status <check|clear|clear-all|set "<text>" --emoji <emoji> [--expires <minutes>]>');
   }
 
   const slackScript = path.join(ROOT_DIR, 'skills', 'slack-status', 'slack.sh');
@@ -44,7 +44,7 @@ function commandSlackStatus(args) {
 
     const text = textParts.join(' ').substring(0, 100);
     if (!text) {
-      throw new Error('Usage: scripts/<agent> slack-status set "<text>" --emoji <emoji> [--expires <minutes>]');
+      throw new Error('Usage: the workspace CLI (scripts/ router) slack-status set "<text>" --emoji <emoji> [--expires <minutes>]');
     }
 
     const safeEmoji = emoji.replace(/'/g, "'\\''");
