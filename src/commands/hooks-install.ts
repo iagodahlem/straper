@@ -94,6 +94,19 @@ function groupMatcher(group: HookGroup): string {
   return typeof group.matcher === 'string' ? group.matcher : ''
 }
 
+/** Normalize a hook command for comparison: strip a leading "./" so a
+ *  hand-authored "./skills/x/y.sh" entry and a module's declared
+ *  "skills/x/y.sh" are recognized as the same command regardless of which
+ *  side (if either) carries the prefix. */
+function normalizeHookCommand(command: string | undefined): string {
+  if (typeof command !== 'string') return ''
+  return command.startsWith('./') ? command.slice(2) : command
+}
+
+function sameCommand(a: string | undefined, b: string | undefined): boolean {
+  return normalizeHookCommand(a) === normalizeHookCommand(b)
+}
+
 /** Splice one hook into settings, creating the event list / matcher group as
  *  needed. No-op when an identical (type=command, command) entry already sits
  *  under the same matcher — that is what keeps re-add idempotent. */
@@ -106,7 +119,7 @@ function mergeHook(settings: Settings, hook: InstalledHook): void {
     list.push(group)
   }
   if (!group.hooks) group.hooks = []
-  const present = group.hooks.some((e) => e.type === 'command' && e.command === hook.command)
+  const present = group.hooks.some((e) => e.type === 'command' && sameCommand(e.command, hook.command))
   if (!present) group.hooks.push({ type: 'command', command: hook.command })
 }
 
@@ -120,7 +133,7 @@ function removeHook(settings: Settings, hook: InstalledHook): void {
     const group = list[i]
     if (groupMatcher(group) !== hook.matcher) continue
     if (!Array.isArray(group.hooks)) continue
-    group.hooks = group.hooks.filter((e) => !(e.type === 'command' && e.command === hook.command))
+    group.hooks = group.hooks.filter((e) => !(e.type === 'command' && sameCommand(e.command, hook.command)))
     if (group.hooks.length === 0) list.splice(i, 1)
   }
   if (list.length === 0 && settings.hooks) delete settings.hooks[hook.event]
@@ -133,7 +146,7 @@ function hookPresent(settings: Settings, hook: InstalledHook): boolean {
     (g) =>
       groupMatcher(g) === hook.matcher &&
       Array.isArray(g.hooks) &&
-      g.hooks.some((e) => e.type === 'command' && e.command === hook.command),
+      g.hooks.some((e) => e.type === 'command' && sameCommand(e.command, hook.command)),
   )
 }
 
