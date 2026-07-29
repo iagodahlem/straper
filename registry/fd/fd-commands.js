@@ -15,6 +15,7 @@ const {
 } = require('./designs.js');
 
 const SKILL_DIR = __dirname;
+const RUNS_DIR = path.join(ROOT_DIR, 'runs');
 const PROVIDERS_CONFIG_PATH = path.join(ROOT_DIR, 'config', 'providers.json');
 const DEFAULT_PROVIDER_CONFIG = {
   providers: {
@@ -121,6 +122,10 @@ function getProviderEntry(provider) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function nowStamp() {
+  return nowIso().replace(/[-:.TZ]/g, '').slice(0, 14);
 }
 
 function sleepMs(ms) {
@@ -386,8 +391,7 @@ function buildFdWorkPrompt(fdId, subItem, options = {}) {
 }
 
 function createWorkerTrackingId(fdId, subItem, provider) {
-  const stamp = nowIso().replace(/[-:.TZ]/g, '').slice(0, 14);
-  return `worker-${fdId.toLowerCase()}-${subItem.toLowerCase()}-${provider}-${stamp}`;
+  return `worker-${fdId.toLowerCase()}-${subItem.toLowerCase()}-${provider}-${nowStamp()}`;
 }
 
 function registerWorkerLaunch(design, fdId, subItem, provider, profile, model) {
@@ -522,6 +526,25 @@ function resolveWorkerModel(provider, profile, explicitModel) {
   return profileEntry.model || '';
 }
 
+// Non-claude CLIs (codex today) run headless via `<command> exec` and need a
+// non-interactive auth check up front — otherwise a missing login silently
+// hangs waiting for a browser flow instead of failing fast.
+function checkProviderAuth(provider, command) {
+  if (provider === 'claude') {
+    return;
+  }
+  if (process.env.CODEX_API_KEY) {
+    return;
+  }
+
+  const authCheck = runCommand(command, ['login', 'status']);
+  if (authCheck.status !== 0) {
+    throw new Error(
+      `${command} is not authenticated (\`${command} login status\` failed). Run \`${command} login\` or set CODEX_API_KEY before dispatching a worker.`
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Command implementations
 // ---------------------------------------------------------------------------
@@ -641,6 +664,10 @@ function commandFdNew(args) {
   const outputPath = path.join(DESIGNS_DIR, `${fdId}.md`);
   const indexPath = path.join(DESIGNS_DIR, 'INDEX.md');
 
+  if (fs.existsSync(outputPath)) {
+    throw new Error(`Refusing to overwrite existing design: designs/${fdId}.md (ID derivation returned an ID already in use — investigate before retrying)`);
+  }
+
   let content = fs.readFileSync(templatePath, 'utf8');
   content = replaceFrontmatterLine(content, 'id', fdId);
   content = replaceFrontmatterLine(content, 'title', quoteYamlString(title));
@@ -736,23 +763,42 @@ function commandWorker(args) {
   console.log('');
 
   const command = providerEntry.command;
+  // claude runs its normal interactive/attended session. Every other provider
+  // (codex today) is dispatched headless via `<command> exec` instead of the
+  // interactive TUI, with its final message captured to a file under runs/ so
+  // an unattended caller can read the result back.
+  const outputLastMessagePath = provider === 'claude'
+    ? null
+    : path.join(RUNS_DIR, `${provider}-${nowStamp()}-last.txt`);
   const commandArgs = provider === 'claude'
     ? [...(resolvedModel ? ['--model', resolvedModel] : []), prompt]
     : [
+      'exec',
       '--cd',
       ROOT_DIR,
       '--sandbox',
       'workspace-write',
-      '--ask-for-approval',
-      'on-request',
       ...(resolvedModel ? ['--model', resolvedModel] : []),
+      '--output-last-message',
+      outputLastMessagePath,
       prompt,
     ];
+
+  if (outputLastMessagePath) {
+    console.log(`   Last message: ${path.relative(ROOT_DIR, outputLastMessagePath)}`);
+    console.log('');
+  }
 
   if (dryRun) {
     console.log('Dry run only.');
     console.log(`Command: ${command} ${commandArgs.map((arg) => JSON.stringify(arg)).join(' ')}`);
     return;
+  }
+
+  checkProviderAuth(provider, command);
+
+  if (outputLastMessagePath) {
+    fs.mkdirSync(RUNS_DIR, { recursive: true });
   }
 
   const tracking = registerWorkerLaunch(design, fdId, subItem, provider, profile, resolvedModel);
@@ -765,6 +811,10 @@ function commandWorker(args) {
   });
   const finalStatus = result.status === 0 ? 'stopped' : 'failed';
   finalizeWorkerLaunch(tracking, finalStatus);
+  if (outputLastMessagePath) {
+    console.log('');
+    console.log(`Last message written to: ${path.relative(ROOT_DIR, outputLastMessagePath)}`);
+  }
   if (result.status !== 0) {
     process.exit(result.status || 1);
   }
