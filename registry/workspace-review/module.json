@@ -1,13 +1,13 @@
 {
   "name": "workspace-review",
   "type": "skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": [
     "fd",
     "memory",
     "task"
   ],
   "config_keys": [],
-  "source_commit": "f98d273c94eae02e67a2ef0b1c106164a00a14e7",
-  "published_at": "2026-07-16T00:54:44.405Z"
+  "source_commit": "c1e75694fe08558bee127f83783825f740ce25a1",
+  "published_at": "2026-07-29T01:38:13.232Z"
 }

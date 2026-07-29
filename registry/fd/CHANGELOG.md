@@ -1,5 +1,9 @@
 # fd changelog
 
+## 0.1.6 — 2026-07-28
+
+Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
+
 ## 0.1.5 — 2026-07-28
 
 - fd: refuse to overwrite an existing design file when a derived ID is already in use.

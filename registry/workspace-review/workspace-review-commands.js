@@ -466,7 +466,7 @@ function commandSkillify(args) {
   const withScript = hasFlag(args, '--with-script');
 
   if (!candidate) {
-    throw new Error('Usage: scripts/<agent> workspace-review skillify <candidate-name> [--with-script] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) workspace-review skillify <candidate-name> [--with-script] [--dry-run]');
   }
   if (!/^[a-z][a-z0-9-]*$/.test(candidate)) {
     throw new Error(`Invalid skill name '${candidate}' — must be kebab-case (lowercase, digits, hyphens).`);
@@ -507,7 +507,7 @@ function commandSkillify(args) {
 
   console.log('## Wire-up (manual, before validate passes)');
   if (withScript) {
-    console.log(`- Add a \`cli_command: ${candidate}\` route in scripts/<agent>.js (import the command, add a \`case '${candidate}'\`, add it to SKILL_BY_COMMAND, add a usage line).`);
+    console.log(`- Add a \`cli_command: ${candidate}\` route in the workspace CLI (scripts/ router).js (import the command, add a \`case '${candidate}'\`, add it to SKILL_BY_COMMAND, add a usage line).`);
   } else {
     console.log('- Prompt-only skill: no cli_command needed. Coverage comes from the `## Metrics` step.');
   }
@@ -527,8 +527,8 @@ function commandSkillify(args) {
   console.log('10. Filing rules — document where outputs land (memory/brain/holding dir).');
   console.log('');
   console.log('## Verify');
-  console.log(`- \`./scripts/<agent> skills validate ${candidate}\` → must PASS (fix frontmatter/wiring until it does).`);
-  console.log('- `./scripts/<agent> skills sync` → regenerates INDEX.md + command pointer.');
+  console.log(`- \`the workspace CLI (scripts/ router) skills validate ${candidate}\` → must PASS (fix frontmatter/wiring until it does).`);
+  console.log('- `the workspace CLI (scripts/ router) skills sync` → regenerates INDEX.md + command pointer.');
   console.log('- Then open a task and dispatch a worker for the checklist above.');
 }
 
