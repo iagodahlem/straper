@@ -6,7 +6,7 @@ const { runCommand } = require('../../scripts/lib/cli-utils.js');
 // first) with port discipline and cross-session visibility.
 //
 // Thin wrapper over skills/service/service.sh (the implementation), surfaced as
-// a first-class `malvin service` command. All arguments pass straight through;
+// a first-class `<agent> service` command. All arguments pass straight through;
 // service.sh owns its own usage/help, argument parsing, and validation.
 function commandService(args) {
   const script = path.join(__dirname, 'service.sh');

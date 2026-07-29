@@ -2,7 +2,8 @@
 
 ## 0.1.6 — 2026-07-28
 
-Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
+- fd: replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
+- fd: drop a deprecated legacy environment-variable fallback.
 
 ## 0.1.5 — 2026-07-28
 

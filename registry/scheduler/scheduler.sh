@@ -385,7 +385,7 @@ run_job() {
   # Export AGENT_SCHEDULER_JOB into the job's environment so any nested
   # `claude -p` it launches signals the workspace SessionStart/SessionEnd hooks
   # to stand down (no boot/teardown housekeeping, no status churn for headless
-  # runs). Consumers dual-read AGENT_SCHEDULER_JOB then the legacy MALVIN_ name.
+  # runs). Consumers read AGENT_SCHEDULER_JOB.
   # Jobs that never spawn claude simply ignore it.
   local out exit_code retried="false"
   out="$(AGENT_SCHEDULER_JOB=1 bash -lc "$command" 2>&1)"; exit_code=$?

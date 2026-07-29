@@ -102,8 +102,7 @@ substrate rather than a point solution.
 When a job shells out to a nested `claude -p`, the scheduler exports
 `AGENT_SCHEDULER_JOB=1` into the command's environment so the workspace
 `SessionStart`/`SessionEnd` hooks stand down (no boot/teardown housekeeping, no
-status churn for headless runs). Consumers dual-read `AGENT_SCHEDULER_JOB` and
-then the legacy `MALVIN_`-prefixed name.
+status churn for headless runs). Consumers read `AGENT_SCHEDULER_JOB`.
 
 ## Arguments
 

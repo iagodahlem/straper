@@ -510,8 +510,7 @@ function resolveWorkerModel(provider, profile, explicitModel) {
 
   const suffix = envSuffixes[provider]?.[profile];
   if (suffix) {
-    // Read AGENT_<suffix> first; MALVIN_<suffix> is the deprecated legacy name.
-    const override = process.env[`AGENT_${suffix}`] ?? process.env[`MALVIN_${suffix}`];
+    const override = process.env[`AGENT_${suffix}`];
     if (override) {
       return override;
     }
