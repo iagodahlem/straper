@@ -3,7 +3,7 @@ const path = require('path');
 
 const { ROOT_DIR, runCommand } = require('../../scripts/lib/cli-utils.js');
 
-const USAGE_MESSAGE = 'Usage: scripts/<agent> workspaces [--include-orphaned]';
+const USAGE_MESSAGE = 'Usage: the workspace CLI (scripts/ router) workspaces [--include-orphaned]';
 
 // List all active worktrees with their status.
 //

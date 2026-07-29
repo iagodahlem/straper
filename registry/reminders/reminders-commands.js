@@ -105,7 +105,7 @@ function addReminder(args) {
   const { textArgs, source } = splitSourceFlag(args);
   const text = textArgs.join(' ').trim();
   if (!text) {
-    throw new Error('Usage: scripts/<agent> reminder add "<text>" [--source "<text>"]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) reminder add "<text>" [--source "<text>"]');
   }
 
   let created;
@@ -129,7 +129,7 @@ function addReminder(args) {
 function doneReminder(args) {
   const id = String(args[0] || '').trim().toUpperCase();
   if (!id) {
-    throw new Error('Usage: scripts/<agent> reminder done <id>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) reminder done <id>');
   }
 
   withFileLock(REMINDERS_PATH, () => {
@@ -187,7 +187,7 @@ function commandReminder(args) {
       listReminders(rest);
       break;
     default:
-      throw new Error('Usage: scripts/<agent> reminder <add "<text>" [--source "<text>"]|done <id>|list [--all]>');
+      throw new Error('Usage: the workspace CLI (scripts/ router) reminder <add "<text>" [--source "<text>"]|done <id>|list [--all]>');
   }
 }
 

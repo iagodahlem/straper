@@ -294,7 +294,7 @@ function parseFdNewArgs(args) {
 
 function validateFdNewArgs({ title, effort, priority, providerHint, profileHint }) {
   if (title === '') {
-    throw new Error('Usage: scripts/<agent> fd-new <title> [--effort <small|medium|large>] [--priority <low|medium|high|critical>] [--repo <repo>] [--provider-hint <provider>] [--profile-hint <profile>] [--branch-suffix <suffix>] [--verification-command <command>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) fd-new <title> [--effort <small|medium|large>] [--priority <low|medium|high|critical>] [--repo <repo>] [--provider-hint <provider>] [--profile-hint <profile>] [--branch-suffix <suffix>] [--verification-command <command>] [--dry-run]');
   }
 
   if (!['small', 'medium', 'large'].includes(effort)) {
@@ -510,8 +510,7 @@ function resolveWorkerModel(provider, profile, explicitModel) {
 
   const suffix = envSuffixes[provider]?.[profile];
   if (suffix) {
-    // Read AGENT_<suffix> first; MALVIN_<suffix> is the deprecated legacy name.
-    const override = process.env[`AGENT_${suffix}`] ?? process.env[`MALVIN_${suffix}`];
+    const override = process.env[`AGENT_${suffix}`];
     if (override) {
       return override;
     }
@@ -717,7 +716,7 @@ function commandFdWorkPrompt(args) {
   const baseBranch = getArgValue(args, '--base') || '';
 
   if (!fdId || !subItem) {
-    throw new Error('Usage: scripts/<agent> fd-work-prompt <FD-ID> <SUB-ITEM> [--base <branch>]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) fd-work-prompt <FD-ID> <SUB-ITEM> [--base <branch>]');
   }
 
   console.log(buildFdWorkPrompt(fdId, subItem, { baseBranch }));
@@ -728,7 +727,7 @@ function commandWorker(args) {
   const subItem = args[1];
 
   if (!fdId || !subItem) {
-    throw new Error('Usage: scripts/<agent> worker <FD-ID> <SUB-ITEM> [--provider <provider>] [--profile <profile>] [--model <model>] [--base <branch>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) worker <FD-ID> <SUB-ITEM> [--provider <provider>] [--profile <profile>] [--model <model>] [--base <branch>] [--dry-run]');
   }
 
   const design = readDesign(fdId);
@@ -826,7 +825,7 @@ function commandFdClose(args) {
   const dryRun = hasFlag(args, '--dry-run');
 
   if (!fdId) {
-    throw new Error('Usage: scripts/<agent> fd-close <FD-ID> [--force] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) fd-close <FD-ID> [--force] [--dry-run]');
   }
 
   const design = readDesign(fdId);

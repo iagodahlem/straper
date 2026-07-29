@@ -12,9 +12,9 @@ const {
 const INVESTIGATIONS_DIRNAME = 'investigations';
 const DEFAULT_CLEAN_AGE_DAYS = 14;
 const USAGE_MESSAGE = [
-  'Usage: scripts/<agent> investigate <repo> [--branch <name>] [--ref <ref>] [--dry-run]',
-  '         scripts/<agent> investigate list',
-  '         scripts/<agent> investigate clean [--older-than <days>] [--dry-run]',
+  'Usage: the workspace CLI (scripts/ router) investigate <repo> [--branch <name>] [--ref <ref>] [--dry-run]',
+  '         the workspace CLI (scripts/ router) investigate list',
+  '         the workspace CLI (scripts/ router) investigate clean [--older-than <days>] [--dry-run]',
 ].join('\n');
 
 // ---------------------------------------------------------------------------

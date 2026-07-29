@@ -186,7 +186,7 @@ function commandSessionReview(args) {
     }
   } else {
     console.log('');
-    console.log('Next: run `./scripts/<agent> session-review --run-session-end` to execute the session-end checklist.');
+    console.log('Next: run `the workspace CLI (scripts/ router) session-review --run-session-end` to execute the session-end checklist.');
   }
 }
 

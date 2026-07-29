@@ -148,7 +148,7 @@ function commandSessionHistory() {
 function commandSessionInfo(args) {
   const id = args[0];
   if (!id) {
-    throw new Error('Usage: scripts/<agent> session info <id>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) session info <id>');
   }
 
   const sessionsDir = getSessionsDir();
@@ -202,7 +202,7 @@ function findSessionByNameOrId(query) {
 function commandSessionResume(args) {
   const query = args.join(' ').trim();
   if (!query) {
-    throw new Error('Usage: scripts/<agent> session resume <name-or-id>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) session resume <name-or-id>');
   }
 
   const session = findSessionByNameOrId(query);
@@ -344,7 +344,7 @@ function commandSessionHandoffList() {
 function commandSessionHandoffRead(args) {
   const name = args[0];
   if (!name) {
-    throw new Error('Usage: scripts/<agent> session handoff read <name>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) session handoff read <name>');
   }
 
   const handoff = readHandoffFile(name);
@@ -358,7 +358,7 @@ function commandSessionHandoffRead(args) {
 function commandSessionHandoffWrite(args) {
   const name = args[0];
   if (!name) {
-    throw new Error('Usage: <content> | scripts/<agent> session handoff write <name> [--recommended-model <model>]');
+    throw new Error('Usage: <content> | the workspace CLI (scripts/ router) session handoff write <name> [--recommended-model <model>]');
   }
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name)) {
     throw new Error(`Invalid handoff name: "${name}" — expected a short kebab-case slug`);
@@ -373,7 +373,7 @@ function commandSessionHandoffWrite(args) {
     body = '';
   }
   if (!body.trim()) {
-    throw new Error('No body content received on stdin. Usage: printf \'%s\' "$content" | scripts/<agent> session handoff write <name>');
+    throw new Error('No body content received on stdin. Usage: printf \'%s\' "$content" | the workspace CLI (scripts/ router) session handoff write <name>');
   }
 
   fs.mkdirSync(HANDOFFS_DIR, { recursive: true });
@@ -397,7 +397,7 @@ function commandSessionHandoffWrite(args) {
 function commandSessionHandoffConsume(args) {
   const name = args[0];
   if (!name) {
-    throw new Error('Usage: scripts/<agent> session handoff consume <name>');
+    throw new Error('Usage: the workspace CLI (scripts/ router) session handoff consume <name>');
   }
 
   const handoff = readHandoffFile(name);
@@ -444,7 +444,7 @@ function commandSessionHandoff(args) {
       commandSessionHandoffConsume(verbArgs);
       break;
     default:
-      throw new Error('Usage: scripts/<agent> session handoff <list|read <name>|write <name> [--recommended-model <model>]|consume <name>>');
+      throw new Error('Usage: the workspace CLI (scripts/ router) session handoff <list|read <name>|write <name> [--recommended-model <model>]|consume <name>>');
   }
 }
 
@@ -472,7 +472,7 @@ function commandSession(args) {
       commandSessionHandoff(subArgs);
       break;
     default:
-      throw new Error('Usage: scripts/<agent> session <list|close-all|history|info <id>|resume <name-or-id>|handoff <list|read|write|consume>>');
+      throw new Error('Usage: the workspace CLI (scripts/ router) session <list|close-all|history|info <id>|resume <name-or-id>|handoff <list|read|write|consume>>');
   }
 }
 

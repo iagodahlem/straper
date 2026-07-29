@@ -101,7 +101,7 @@ function parseShipArgs(args) {
 function buildShipPrompt(args) {
   const parsed = parseShipArgs(args);
   if (!parsed.worktreeName) {
-    throw new Error('Usage: scripts/<agent> ship-prompt [<worktree-name>] [--base <branch>] [--tier 1|2] [--quick] [--skip-verify] [--push] [--create-pr] [--title <title>] [--body-file <path>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) ship-prompt [<worktree-name>] [--base <branch>] [--tier 1|2] [--quick] [--skip-verify] [--push] [--create-pr] [--title <title>] [--body-file <path>] [--dry-run]');
   }
 
   return renderTemplate('ship', {
@@ -134,7 +134,7 @@ function commandShip(args) {
   } = parseShipArgs(args);
 
   if (!worktreeName) {
-    throw new Error('Usage: scripts/<agent> ship [<worktree-name>] [--base <branch>] [--tier 1|2] [--quick] [--skip-verify] [--push] [--create-pr] [--title <title>] [--body-file <path>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) ship [<worktree-name>] [--base <branch>] [--tier 1|2] [--quick] [--skip-verify] [--push] [--create-pr] [--title <title>] [--body-file <path>] [--dry-run]');
   }
 
   const worktreePath = path.join(ROOT_DIR, 'workspaces', worktreeName);

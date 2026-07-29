@@ -27,7 +27,7 @@ function commandScheduler(args) {
   const scriptName = SCRIPT_BY_SUBCOMMAND[subcommand];
   if (!scriptName) {
     console.error(`Unknown subcommand: ${subcommand}`);
-    console.error('Usage: scripts/<agent> scheduler <status|run|install> [args]');
+    console.error('Usage: the workspace CLI (scripts/ router) scheduler <status|run|install> [args]');
     process.exit(1);
     return;
   }

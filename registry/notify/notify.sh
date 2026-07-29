@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# skills/notify/notify.sh — Malvin notification fan-out.
+# skills/notify/notify.sh — workspace notification fan-out.
 #
 # Usage (as a library):   source skills/notify/notify.sh
 # Usage (as a CLI):       skills/notify/notify.sh <channel> <title> <body>
@@ -30,7 +30,7 @@
 #      token is empty (e.g. an interactive box where .env was never populated but
 #      a 1Password session is live). Best-effort; never blocks a configured run.
 # The token in .env is NEVER committed (.env is gitignored). Populate it once
-# from 1Password — see projects/malvin-heartbeat/notes/telegram-setup.md.
+# from 1Password — see your workspace's notes on Telegram setup.
 
 # Resolve workspace root relative to this script (matches slack.sh).
 _NOTIFY_ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
@@ -334,8 +334,7 @@ telegram_send_chunked() {
 #
 # Silent no-op (return 0) when terminal-notifier is not on PATH — exactly like
 # telegram_send no-ops when Telegram is unconfigured. `brew install
-# terminal-notifier` is the one manual step (see
-# projects/malvin-heartbeat/notes/macos-notifier.md).
+# terminal-notifier` is the one manual step.
 #
 # macOS gotchas baked in here (do NOT undo these):
 #   * We use terminal-notifier, NOT `osascript -e 'display notification'`:
@@ -354,7 +353,7 @@ terminal_notify() {
   local title="${1:-}" body="${2:-}" group="${3:-}"
   [[ -z "$title" && -z "$body" ]] && return 0
 
-  local args=(-title "${title:-Malvin}" -message "${body:-}")
+  local args=(-title "${title:-Notification}" -message "${body:-}")
   args+=(-activate "$NOTIFY_TERMINAL_BUNDLE_ID")
   [[ -n "$group" ]] && args+=(-group "$group")
 

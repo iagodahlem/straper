@@ -191,17 +191,17 @@ const WIREUP_SKILLS_PREFIX = ['..', 'skills'].join('/');
 function printWireUp(name, { noScript, bash }) {
   console.log('## Wire-up (manual)');
   if (!noScript) {
-    console.log(`1. In scripts/<agent>.js: \`const { command${pascal(name)} } = require('${WIREUP_SKILLS_PREFIX}/${name}/${name}-commands.js');\``);
+    console.log(`1. In the workspace CLI (scripts/ router).js: \`const { command${pascal(name)} } = require('${WIREUP_SKILLS_PREFIX}/${name}/${name}-commands.js');\``);
     console.log(`2. Add \`${name}: '${name}',\` to SKILL_BY_COMMAND.`);
     console.log(`3. Add \`case '${name}': command${pascal(name)}(args); break;\` to the dispatch switch.`);
-    console.log(`4. Add a \`scripts/<agent> ${name} ...\` usage line.`);
+    console.log(`4. Add a \`the workspace CLI (scripts/ router) ${name} ...\` usage line.`);
   } else {
     console.log('- Prompt-only skill: no CLI wiring needed.');
   }
   console.log('');
   console.log('## Verify');
-  console.log(`- \`./scripts/<agent> skills validate ${name}\` → fix frontmatter until it PASSes.`);
-  console.log('- `./scripts/<agent> skills sync` → regenerates INDEX.md + the /command pointer.');
+  console.log(`- \`the workspace CLI (scripts/ router) skills validate ${name}\` → fix frontmatter until it PASSes.`);
+  console.log('- `the workspace CLI (scripts/ router) skills sync` → regenerates INDEX.md + the /command pointer.');
   console.log('- Fill in the TODOs in the .md (Purpose/Arguments/Execution/Examples).');
   if (bash) {
     console.log(`- Implement skills/${name}/${name}.sh.`);
