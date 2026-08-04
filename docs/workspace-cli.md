@@ -63,7 +63,7 @@ A skill contributes workspace-CLI commands by placing a `commands.json` file at 
 
 ### Handler contract
 
-The handler is a plain function. It receives the argument array (everything after the command name), does its work, and either returns or throws. A thrown error is printed and the CLI exits non-zero. The dispatcher wraps the call, times it, and logs a metric row to `.metrics/skills.jsonl` via `logSkillMetric`.
+The handler is a plain function. It receives the argument array (everything after the command name), does its work, and either returns or throws. A thrown error is printed and the CLI exits non-zero. The dispatcher wraps the call, times it, and logs a metric row to `.metrics/skills.jsonl` via `logSkillMetric`, delegating to the JS sink at `skills/lib/metrics.js`. That file is written the first time a workspace vendors any module (see [straper add](cli-reference.md#straper-add)) — it is shared runtime substrate, not a skill, so it does not exist in a zero-skill workspace and metrics are a silent no-op until then.
 
 Handlers are loaded lazily by absolute path, so their own relative `require()`s resolve from the skill directory as usual (e.g. `../../scripts/lib/cli-utils.js`).
 

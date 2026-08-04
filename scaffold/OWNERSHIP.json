@@ -1,6 +1,6 @@
 {
   "manifestVersion": 1,
-  "description": "Ownership manifest for scaffold/. Every file copied into a generated workspace at `straper init` time is the runtime baseline and MUST be listed here with classification \"baseline\" and a justification. Skill-owned assets (task schema, fd designs/config, ship/session-review prompts, worktree cleanup, etc.) do NOT live in scaffold/ — the modules ship them on `straper add`. A test walks scaffold/ and fails on any file missing from this manifest, so a new scaffold file is unmergeable until it is classified.",
+  "description": "Ownership manifest for scaffold/. Every file under scaffold/ is the runtime baseline and MUST be listed here with classification \"baseline\" and a justification. Most are copied into a generated workspace at `straper init` time; skills/lib/metrics.js is the one exception — it is copied lazily by `straper add`/`migrate` (see its own justification) so a zero-skill workspace still has no skills/ directory. Skill-owned assets (task schema, fd designs/config, ship/session-review prompts, worktree cleanup, etc.) do NOT live in scaffold/ — the modules ship them on `straper add`. A test walks scaffold/ and fails on any file missing from this manifest, so a new scaffold file is unmergeable until it is classified.",
   "files": {
     "OWNERSHIP.json": {
       "classification": "baseline",
@@ -37,6 +37,10 @@
     "scripts/lib/skills.sh": {
       "classification": "baseline",
       "justification": "Skill framework runtime (discovery, validation, composition). Baseline substrate every module builds on."
+    },
+    "skills/lib/metrics.js": {
+      "classification": "baseline",
+      "justification": "JS metrics sink cli-runtime.js's logSkillMetric() delegates to (see docs/workspace-cli.md). Not copied by `straper init` — a zero-skill workspace must have no skills/ directory — but copied write-if-missing by `straper add`/`migrate` (registry-shared.ts#ensureMetricsSink) the moment a workspace first vendors a module, which is when skills/ starts to exist anyway. `skills/lib/` is reserved runtime substrate, not a module name; doctor/adopt/migrate exclude it from orphan and unmanaged-skill detection."
     },
     "scripts/session-start.sh": {
       "classification": "baseline",

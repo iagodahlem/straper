@@ -119,7 +119,9 @@ straper add <module...> [options]
 | `--registry <dir>` | string | Bundled registry | Registry directory. Overrides `STRAPER_REGISTRY_DIR`. |
 | `--no-agents-dir` | flag | off | Skip the universal `.agents/skills/<name>/SKILL.md` pointer (only write the Claude pointer). Equivalent to `STRAPER_NO_AGENTS_DIR=1`. |
 
-Dependencies are installed transitively; a dependency cycle in the registry aborts the install. Each installed module prints its version and dependency count, e.g. `added session-review@0.1.2 (+4 deps)`.
+Dependencies are installed transitively; a dependency cycle in the registry aborts the install. Each installed module prints its version and dependency count, e.g. `added session-review@0.1.2 (+4 deps)`. A module's `config/` and `jobs/` subdirectories (see [Skill-owned config and jobs](concepts.md#skill-owned-config-and-jobs)) vendor like any other module file — no special handling.
+
+`add` also writes `skills/lib/metrics.js` — the metrics sink the workspace CLI's dispatcher logs command usage to — the first time a workspace vendors any module, if it is not already present. It is shared runtime substrate, not a module, so it is never overwritten on a later `add` and never listed in `straper.lock`.
 
 **Module-contributed hooks.** If a module ships a `hooks.json` (see [the workspace-CLI doc](workspace-cli.md#module-contributed-hooks-and-the-hooksjson-contract)), `add` splices its declared hook entries into the workspace's `.claude/settings.json` with a surgical JSON merge that leaves the rest of the file untouched. The merge is idempotent — re-adding a module never duplicates an entry — and the installed entries are recorded in the module's `straper.lock` entry so [`update`](#straper-update) can replace them and [`doctor`](#straper-doctor) can flag one that goes missing. If the workspace has no `.claude/settings.json` yet, one is created.
 
@@ -167,9 +169,11 @@ straper doctor [--dir <path>]
 |------|------|---------|-------------|
 | `--dir <path>` | string | Current directory | Workspace directory. |
 
-Reports, per module: `✓` healthy, `~` locally modified (info), `✗` a problem. It also flags orphans — `skills/<name>/` directories not present in `straper.lock`.
+Reports, per module: `✓` healthy, `~` locally modified (info), `✗` a problem. It also flags orphans — `skills/<name>/` directories not present in `straper.lock`. (`skills/lib/` is reserved runtime substrate, not a module directory, so it is never reported as an orphan — see [Skill-owned config and jobs](concepts.md#skill-owned-config-and-jobs).)
 
 Doctor also verifies module-contributed hooks: for any module whose lock entry records hooks (see [straper add](#straper-add)), a `✗` is raised when one of those hook entries is missing from `.claude/settings.json` (hand-removed or clobbered).
+
+**Deprecation notice.** If the workspace has a root-level `jobs/` directory, doctor prints an informational `⚠ deprecated` line pointing at [Skill-owned config and jobs](concepts.md#skill-owned-config-and-jobs) — job definitions belong in `skills/<name>/jobs/` now, and the root path is read-compatible for one release only. This does not affect the exit code.
 
 ## straper drift
 

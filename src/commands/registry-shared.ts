@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 
-import { REGISTRY_DIR } from '../constants.js'
+import { REGISTRY_DIR, SCAFFOLD_DIR } from '../constants.js'
 
 export interface ModuleManifest {
   name: string
@@ -49,6 +49,14 @@ export const LOCKFILE_NAME = 'straper.lock'
 export const LOCKFILE_VERSION = 1
 export const REGISTRY_METADATA_FILES = new Set(['module.json', 'CHANGELOG.md', 'SKILL.md'])
 export const BASE_STORE_DIR = join('.straper', 'base')
+
+/**
+ * Directory names directly under a workspace's skills/ that are shared runtime
+ * substrate, not modules: never a candidate for adopt/migrate name-matching,
+ * and never reported by doctor's orphan scan. `lib` holds skills/lib/metrics.js
+ * (see ensureMetricsSink below).
+ */
+export const RESERVED_SKILLS_SUBDIRS = new Set(['lib'])
 
 /**
  * Resolve the registry directory.
@@ -344,7 +352,11 @@ export async function listRegistryModules(registryRoot: string): Promise<string[
   return names.sort()
 }
 
-/** Directory names directly under a workspace's skills/ (empty when skills/ is absent). */
+/**
+ * Module directory names directly under a workspace's skills/ (empty when
+ * skills/ is absent). Excludes dotfiles and RESERVED_SKILLS_SUBDIRS — shared
+ * runtime substrate like skills/lib/, never a module.
+ */
 export async function listSkillDirs(workspaceDir: string): Promise<string[]> {
   let entries
   try {
@@ -353,9 +365,34 @@ export async function listSkillDirs(workspaceDir: string): Promise<string[]> {
     return []
   }
   return entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        !entry.name.startsWith('.') &&
+        !RESERVED_SKILLS_SUBDIRS.has(entry.name),
+    )
     .map((entry) => entry.name)
     .sort()
+}
+
+/**
+ * Copy the skills-framework metrics sink (scaffold/skills/lib/metrics.js,
+ * see its own header comment) into the workspace at skills/lib/metrics.js if
+ * not already present. cli-runtime.js's logSkillMetric() looks for exactly
+ * this file after every command it routes; without it, metrics silently do
+ * nothing. Called from `add`/`migrate` (whenever a workspace vendors its
+ * first module — the point at which skills/ starts to exist), never from
+ * `init`: a zero-skill workspace must have no skills/ directory at all. Never
+ * overwrites an existing file, so a workspace with its own sink (or a
+ * hand-written one predating this fix) keeps it untouched.
+ */
+export async function ensureMetricsSink(workspaceDir: string): Promise<void> {
+  const dest = join(workspaceDir, 'skills', 'lib', 'metrics.js')
+  if (await fileExists(dest)) return
+  const src = join(SCAFFOLD_DIR, 'skills', 'lib', 'metrics.js')
+  const bytes = await readFile(src)
+  await mkdir(dirname(dest), { recursive: true })
+  await writeFile(dest, bytes)
 }
 
 async function fileExists(path: string): Promise<boolean> {

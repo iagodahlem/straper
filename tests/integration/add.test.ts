@@ -320,6 +320,54 @@ describe('add — universal .agents pointer', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Skills-framework metrics sink (skills/lib/metrics.js)
+// ---------------------------------------------------------------------------
+
+describe('add — skills/lib/metrics.js metrics sink', () => {
+  it('writes the sink on first vendor, matching the scaffold source bytes', async () => {
+    await writeModule('alpha')
+    const log = captureLog()
+    await add({ modules: ['alpha'], dir: wsDir, registry: registryDir })
+    log.restore()
+
+    const sinkPath = join(wsDir, 'skills', 'lib', 'metrics.js')
+    expect(await exists(sinkPath)).toBe(true)
+
+    const scaffoldSource = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '..',
+      '..',
+      'scaffold',
+      'skills',
+      'lib',
+      'metrics.js',
+    )
+    expect(await readFile(sinkPath, 'utf-8')).toBe(await readFile(scaffoldSource, 'utf-8'))
+
+    // Not lockfile-tracked — it's shared runtime substrate, not a module file.
+    const paths = (await readLock()).modules['alpha'].files.map((f) => f.path)
+    expect(paths).not.toContain('skills/lib/metrics.js')
+  })
+
+  it('never overwrites an existing sink (local edits survive a re-add)', async () => {
+    await writeModule('alpha')
+    const first = captureLog()
+    await add({ modules: ['alpha'], dir: wsDir, registry: registryDir })
+    first.restore()
+
+    const sinkPath = join(wsDir, 'skills', 'lib', 'metrics.js')
+    await writeFile(sinkPath, '// hand-edited sink\n', 'utf-8')
+
+    await writeModule('beta')
+    const second = captureLog()
+    await add({ modules: ['beta'], dir: wsDir, registry: registryDir })
+    second.restore()
+
+    expect(await readFile(sinkPath, 'utf-8')).toBe('// hand-edited sink\n')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Idempotency
 // ---------------------------------------------------------------------------
 
