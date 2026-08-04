@@ -20,9 +20,12 @@ const { spawnSync } = require('child_process');
 
 const { ROOT_DIR, shellQuote } = require('./cli-utils.js');
 
-// Skill metrics belong to the skills framework, not the runtime baseline. When
-// the framework ships a JS sink (skills/lib/metrics.js) we delegate to it; with
-// no skills installed this is a no-op, so a zero-skill workspace still runs.
+// Skill metrics belong to the skills framework, not the runtime baseline: the
+// sink lives at skills/lib/metrics.js, written by `straper add`/`migrate` the
+// first time a workspace vendors a module (see docs/workspace-cli.md), never
+// by `init` — a zero-skill workspace has no skills/ directory at all. The
+// require is still guarded: a workspace scaffolded before this existed, or
+// with the file removed by hand, just runs with metrics disabled.
 function logSkillMetric(...metricArgs) {
   try {
     const sink = require(path.join(ROOT_DIR, 'skills', 'lib', 'metrics.js'));

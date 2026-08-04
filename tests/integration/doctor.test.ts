@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { access, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { add } from '../../src/commands/add.js'
 import { doctor } from '../../src/commands/doctor.js'
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path)
+    return true
+  } catch {
+    return false
+  }
+}
 
 let tmpDir: string
 let registryDir: string
@@ -180,5 +189,76 @@ describe('doctor — orphan vendored dir is informational', () => {
     expect(log.text()).toContain('ghost')
     expect(log.text()).toContain('unmanaged')
     expect(log.text()).toContain('All vendored modules healthy')
+  })
+})
+
+describe('doctor — skills/lib/ is reserved substrate, not an orphan module', () => {
+  it('does not flag skills/lib/metrics.js (written by `add`) as unmanaged', async () => {
+    await writeModule('alpha')
+    await install('alpha')
+    expect(await exists(join(wsDir, 'skills', 'lib', 'metrics.js'))).toBe(true)
+
+    const log = captureLog()
+    await doctor({ dir: wsDir })
+    log.restore()
+
+    expect(log.text()).not.toContain('lib unmanaged')
+    expect(log.text()).toContain('All vendored modules healthy')
+  })
+})
+
+describe('doctor — skill-local config/ and jobs/ subdirs', () => {
+  it('vendors and validates a module carrying config/ and jobs/ like any other module file', async () => {
+    await writeModule('alpha')
+    await mkdir(join(registryDir, 'alpha', 'config'), { recursive: true })
+    await writeFile(join(registryDir, 'alpha', 'config', 'alpha.json'), '{}\n', 'utf-8')
+    await mkdir(join(registryDir, 'alpha', 'jobs', 'nightly-sweep'), { recursive: true })
+    await writeFile(
+      join(registryDir, 'alpha', 'jobs', 'nightly-sweep', 'nightly-sweep.md'),
+      '---\nschedule: "0 3 * * *"\n---\n',
+      'utf-8',
+    )
+
+    await install('alpha')
+
+    expect(await exists(join(wsDir, 'skills', 'alpha', 'config', 'alpha.json'))).toBe(true)
+    expect(
+      await exists(join(wsDir, 'skills', 'alpha', 'jobs', 'nightly-sweep', 'nightly-sweep.md')),
+    ).toBe(true)
+
+    const log = captureLog()
+    await doctor({ dir: wsDir })
+    log.restore()
+
+    expect(log.text()).toContain('All vendored modules healthy')
+    expect(log.text()).not.toContain('deprecated')
+  })
+})
+
+describe('doctor — root jobs/ deprecation notice', () => {
+  it('flags a workspace-root jobs/ dir as deprecated but stays exit zero', async () => {
+    await writeModule('alpha')
+    await install('alpha')
+    await mkdir(join(wsDir, 'jobs', 'legacy-job'), { recursive: true })
+    await writeFile(join(wsDir, 'jobs', 'legacy-job', 'legacy-job.md'), 'legacy\n', 'utf-8')
+
+    const log = captureLog()
+    await doctor({ dir: wsDir })
+    log.restore()
+
+    expect(log.text()).toContain('deprecated')
+    expect(log.text()).toContain('jobs/')
+    expect(log.text()).toContain('All vendored modules healthy')
+  })
+
+  it('says nothing when there is no root jobs/ dir', async () => {
+    await writeModule('alpha')
+    await install('alpha')
+
+    const log = captureLog()
+    await doctor({ dir: wsDir })
+    log.restore()
+
+    expect(log.text()).not.toContain('deprecated')
   })
 })

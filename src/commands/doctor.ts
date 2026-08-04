@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 import { findMissingHooks } from './hooks-install.js'
@@ -6,6 +6,7 @@ import {
   type LockModuleEntry,
   LOCKFILE_VERSION,
   baseDirFor,
+  listSkillDirs,
   pointerPathFor,
   readLock,
   sha256,
@@ -58,6 +59,12 @@ export async function doctor(args: DoctorArgs): Promise<void> {
   const orphans = await findOrphans(workspaceDir, new Set(names))
   for (const orphan of orphans) {
     console.log(`  ? ${orphan} unmanaged (not in straper.lock)`)
+  }
+
+  if (await dirExists(join(workspaceDir, 'jobs'))) {
+    console.log(
+      '  ⚠ deprecated: workspace-root jobs/ — job definitions belong in skills/<name>/jobs/ now; root jobs/ stays read-compatible for one release. See docs/concepts.md.',
+    )
   }
 
   console.log('')
@@ -127,21 +134,14 @@ function printReport(report: ModuleReport): void {
   for (const line of report.lines) console.log(`      ${line}`)
 }
 
+/**
+ * Directories under skills/ that are not in the lock. listSkillDirs already
+ * excludes dotfiles and reserved runtime substrate (skills/lib/), so this
+ * never flags skills/lib/metrics.js as an unmanaged module.
+ */
 async function findOrphans(workspaceDir: string, tracked: Set<string>): Promise<string[]> {
-  const skillsDir = join(workspaceDir, 'skills')
-  let entries
-  try {
-    entries = await readdir(skillsDir, { withFileTypes: true })
-  } catch {
-    return []
-  }
-  const orphans: string[] = []
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue
-    if (entry.name.startsWith('.')) continue
-    if (!tracked.has(entry.name)) orphans.push(entry.name)
-  }
-  return orphans.sort()
+  const names = await listSkillDirs(workspaceDir)
+  return names.filter((name) => !tracked.has(name)).sort()
 }
 
 function hasConflictMarkers(content: Buffer): boolean {

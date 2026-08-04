@@ -98,6 +98,21 @@ Skills are not baked into the scaffold. They live in a registry and get vendored
 
 A registry module is a published skill: a directory of files plus a `module.json` manifest carrying a semantic version, a `type`, and a list of declared dependencies. Dependencies are real — `session-review` depends on `fd`, `memory`, `session`, and `task`, and `straper add session-review` installs all of them transitively.
 
+### Skill-owned config and jobs
+
+A module's state lives inside its own skill folder, not scattered across the workspace root. Two reserved subdirectories carry that state:
+
+- **`skills/<name>/config/`** — the module's own overlay config: settings the module reads at runtime, tracked in git like any other module file. A config file that carries a secret is the one exception: it stays gitignored, with a committed `<file>.example` sibling documenting its shape so a fresh workspace knows what to fill in. `config/services.json` and `config/recipes/*.json` in the `service` module are the working example of the non-secret case.
+- **`skills/<name>/jobs/`** — job definitions the scheduler module discovers and runs on a wall-clock schedule. Each job is its own folder, `jobs/<job-id>/<job-id>.md` plus an optional helper script, mirroring the shape scheduler already uses at the workspace root today.
+
+Both subdirectories are ordinary module files as far as vendoring, updating, and publishing are concerned: `straper add` copies them into `skills/<name>/` alongside everything else, `straper.lock` hashes and tracks them file-by-file, `straper update` three-way-merges them like any other vendored file, and `straper publish` includes them in the module's content hash and self-containment check. Nothing in the toolchain special-cases these two names — the contract is where a module is allowed to look for its own state, not a new mechanism.
+
+**Precedence.** A module resolves its own config in this order: an explicit override (a CLI flag or an env var the module defines), then `skills/<name>/config/`. New modules only ever have the second — there is no root-level fallback to fall back to. A module migrating off a workspace-root config path keeps reading the root path too, for one release, with a note in its own docs that the root path is deprecated; after that release the root path is dropped.
+
+**Why:** only structural directories belong at the workspace root — `repos/`, `workspaces/`, `tasks/`, `designs/`, `plans/`, `docs/`, `memory/`, `skills/`, `scripts/`, `secrets/`, `runs/`, and the like. Config and job definitions are a specific module's business, not the workspace's, so they live where that module lives. This keeps the root minimal and makes a skill's footprint easy to reason about: everything it owns is under one directory, and removing the module (once `straper remove` exists) removes its state with it.
+
+**Root `jobs/` is deprecated, not removed.** Before this contract, the scheduler module discovered jobs from a single workspace-root `jobs/` directory, and that is still true today — the scheduler's own glob change to also (or instead) look under `skills/*/jobs/` is a separate, later change. A workspace-root `jobs/` directory keeps working for one release after the scheduler adopts the skill-local glob. `straper doctor` flags a workspace-root `jobs/` directory as deprecated (informational — it does not fail the check) so a workspace knows to migrate before the compatibility window closes.
+
 ### Vendoring (`straper add`)
 
 `straper add <module>` copies the module's files into `skills/<name>/`, installs its dependencies, and records the result in the lockfile. The skill body now lives in your workspace; you can read and edit it freely.
@@ -121,7 +136,7 @@ The pointers carry identical content and just say "read `skills/<name>/<name>.md
 
 ### Health and updates
 
-- `straper doctor` is a read-only check: missing files, unresolved conflict markers, local modifications (reported as info), and orphaned skill directories not in the lockfile.
+- `straper doctor` is a read-only check: missing files, unresolved conflict markers, local modifications (reported as info), orphaned skill directories not in the lockfile, and a deprecated workspace-root `jobs/` directory (see [Skill-owned config and jobs](#skill-owned-config-and-jobs) above).
 - `straper update [module...]` refreshes vendored skills, preserving local edits via the baseline merge.
 - `straper use <module>` materializes a skill into a temp dir and prints a prompt without installing anything — a way to trial a skill for one session.
 
