@@ -52,7 +52,8 @@ outstanding item for first-class Linux support.
 ```
 launchd (com.agent.scheduler, StartInterval=300, RunAtLoad)   # macOS trigger
    └─ every 5 min → skills/scheduler/scheduler.sh   (one tick)
-        ├─ read jobs/*/*.md frontmatter (one def per per-job folder)
+        ├─ read skills/*/jobs/*/*.md frontmatter (one def per per-job folder;
+        │  deprecated workspace-root jobs/*/*.md still read too, one release)
         ├─ DUE-CHECK each job (zero-inference bash/jq/date vs per-job state)
         ├─ weekday / active-hours gate
         ├─ CLAIM-BEFORE-ACT (write in_flight → overlapping ticks stand down)
@@ -73,12 +74,13 @@ launchd (com.agent.scheduler, StartInterval=300, RunAtLoad)   # macOS trigger
   (no LLM); only a job whose command shells out to a nested `claude -p` (e.g.
   pulse harvest) spends a Claude turn. Idempotent under overlapping ticks via
   claim-before-act.
-- **L3 — Jobs.** Each job is a **self-contained folder** `jobs/<id>/` holding
-  its def `<id>.md` (md + YAML-ish frontmatter) plus an optional `run.sh` helper
-  (a pure-skill job needs only the `.md`). **Jobs live TOP-LEVEL in `jobs/` by
-  design** — they are data, decoupled from this engine. The scheduler is a
-  generic runner; a job's `command` can be a plain script OR a skill invocation.
-  See "Jobs" below.
+- **L3 — Jobs.** Each job is a **self-contained folder** `skills/<name>/jobs/<id>/`
+  holding its def `<id>.md` (md + YAML-ish frontmatter) plus an optional `run.sh`
+  helper (a pure-skill job needs only the `.md`). **Jobs live inside the skill
+  that owns them** — they are that skill's data, decoupled from this engine. A
+  workspace-root `jobs/<id>/` still works too, for one release (deprecated —
+  see "add-job" below). The scheduler is a generic runner; a job's `command`
+  can be a plain script OR a skill invocation. See "Jobs" below.
 - **L4 — Notify.** Output is delivered through the [[notify]] skill
   (`skills/notify/notify.sh`), per each job's `notify` policy. The
   no-auto-post boundary lives there.
@@ -87,13 +89,13 @@ launchd (com.agent.scheduler, StartInterval=300, RunAtLoad)   # macOS trigger
 
 A job's `command` is just a shell string. It can be:
 
-- a plain helper script colocated in the job folder — `./jobs/pr-babysit/run.sh`,
-  `./jobs/stale-worktree-sweep/run.sh`; or
+- a plain helper script colocated in the job folder — `./skills/<name>/jobs/pr-babysit/run.sh`,
+  `./skills/<name>/jobs/stale-worktree-sweep/run.sh`; or
 - a **skill invocation** via headless Claude —
   `printf '%s' "$PROMPT" | claude -p --allowedTools "..."` that runs a skill's
   mode (e.g. a combined pulse scheduled run). The helper
-  `jobs/slack-pulse/run.sh` is exactly this — it drafts a notification AND
-  harvests to memory in one read.
+  `skills/<name>/jobs/slack-pulse/run.sh` is exactly this — it drafts a
+  notification AND harvests to memory in one read.
 
 The scheduler does not care which — it runs the command, captures stdout+stderr,
 hashes it for dedup, and notifies per policy. This is what makes it a generic
@@ -214,9 +216,12 @@ bash skills/scheduler/scheduler.sh
 
 ### `add-job`
 
-A job is a self-contained folder `jobs/<id>/` holding `<id>.md` (frontmatter +
-optional body) plus an optional `run.sh` helper. See `jobs/README.md` for the
-full frontmatter schema. Minimal shape — `jobs/my-job/my-job.md`:
+A job is a self-contained folder `skills/<name>/jobs/<id>/` — inside the skill
+that owns it — holding `<id>.md` (frontmatter + optional body) plus an
+optional `run.sh` helper. See that skill's `jobs/README.md` for the full
+frontmatter schema, once one exists (no schema doc is scaffolded yet — see
+`docs/concepts.md` "Skill-owned config and jobs" for the shape in the
+meantime). Minimal shape — `skills/<name>/jobs/my-job/my-job.md`:
 
 ```markdown
 ---
@@ -228,7 +233,7 @@ active_hours: "09:00-19:30"
 substrate: local
 notify: on-change       # silent | on-change | always | error
 recurring: true
-command: ./jobs/my-job/run.sh
+command: ./skills/<name>/jobs/my-job/run.sh
 persist_paths: memory/pulse/   # optional — scoped git commit of job output
 ---
 
@@ -237,14 +242,19 @@ Body is free-form notes (or the headless prompt for a `claude -p` command).
 ```
 
 - `command` is **relative to the repo root** and can be the colocated
-  `./jobs/<id>/run.sh` helper OR an inline `claude -p` skill run (see above). A
-  pure-skill job needs only the `.md` — no `run.sh`.
-- Jobs go in **`jobs/<id>/` at the workspace root**, never inside this skill
-  dir — jobs are data, the engine is logic (SCHEMA.md "Data vs. Logic").
-- The scheduler discovers jobs via the `jobs/*/*.md` glob, which excludes the
-  schema doc `jobs/README.md` at the `jobs/` root.
+  `./skills/<name>/jobs/<id>/run.sh` helper OR an inline `claude -p` skill run
+  (see above). A pure-skill job needs only the `.md` — no `run.sh`.
+- Jobs go in **`skills/<name>/jobs/<id>/`, inside the skill that owns them** —
+  jobs are that skill's data, the scheduler is the shared engine (SCHEMA.md
+  "Data vs. Logic").
+- The scheduler discovers jobs via the `skills/*/jobs/*/*.md` glob, which
+  excludes a `jobs/README.md` schema doc sitting at a skill's `jobs/` root. A
+  workspace-root `jobs/<id>/` (the pre-migration convention) is still
+  discovered too, for one release — see "Graceful Degradation" below — with a
+  deprecation warning on stderr each tick it finds root jobs. Move any
+  remaining root jobs under their owning skill before that window closes.
 - No validator yet — `jobs/schema.json` + `validate-jobs.sh` is a later step.
-  `jobs/README.md` is the contract until then.
+  A `jobs/README.md` inside the owning skill is the contract until then.
 
 ## State & output
 
@@ -261,7 +271,7 @@ Body is free-form notes (or the headless prompt for a `claude -p` command).
   files; so the job declares `persist_paths: memory/pulse/, memory/pulse-drafts/`
   and the scheduler does a scoped `git add <paths> && git commit` (never
   `git add -A`, never a push) after a successful run, so away-for-days runs persist.
-- **Delivery visibility:** `jobs/slack-pulse/run.sh` appends a
+- **Delivery visibility:** `skills/<name>/jobs/slack-pulse/run.sh` appends a
   `delivered_telegram=true|false` sentinel to its stdout; the scheduler captures it
   into the metric row's `delivered` field, so the otherwise-invisible (`notify:
   silent`) send shows up in `.metrics/scheduler.jsonl` and `scheduler-status`.
@@ -273,7 +283,8 @@ Body is free-form notes (or the headless prompt for a `claude -p` command).
 
 ## Graceful Degradation
 
-- No `jobs/` dir or no job files → logs and exits 0.
+- No `skills/*/jobs/` dirs, no workspace-root `jobs/` dir, or no job files
+  under either → logs and exits 0.
 - A job with no `command` → logged, skipped (not run).
 - `substrate: remote` → not wired yet; logged and skipped gracefully.
 - `notify.sh` absent → the tick logs and degrades; it never fails.

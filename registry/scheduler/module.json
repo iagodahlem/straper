@@ -1,11 +1,11 @@
 {
   "name": "scheduler",
   "type": "skill",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "deps": [
     "notify"
   ],
   "config_keys": [],
-  "source_commit": "c1e75694fe08558bee127f83783825f740ce25a1",
-  "published_at": "2026-07-29T01:45:00.000Z"
+  "source_commit": "635c141d0e3b55beada294f2a086659174d99573",
+  "published_at": "2026-08-05T00:05:00.000Z"
 }
