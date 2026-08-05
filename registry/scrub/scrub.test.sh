@@ -367,6 +367,112 @@ SCRUB_PUBLISH_PROFILE="${PUBLISH_FIXTURE_CFG}" run_scrub /dev/null --profile pub
 report_case "${CASE_NUM}" "publish: --profile publish ignores default-profile-only classes (assistant-name)" 0 "${LAST_EXIT}"
 
 # ---------------------------------------------------------------------------
+# --profile publish: skill-local vs. deprecated workspace-root config
+# ---------------------------------------------------------------------------
+# The cases above all pin the config path via SCRUB_PUBLISH_PROFILE, so none
+# of them exercise SCRUB_ROOT_DIR-relative resolution (skill-local config,
+# then the deprecated root fallback). scrub.sh only ever resolves those two
+# paths relative to its OWN location, two directories up -- so exercising
+# them means running a throwaway copy of scrub.sh from a sandboxed fake
+# workspace root under TMP_DIR, never the real vendored copy at SCRUB, and
+# never any real path outside TMP_DIR.
+SANDBOX_ROOT="${TMP_DIR}/sandbox-root"
+mkdir -p "${SANDBOX_ROOT}/skills/scrub"
+cp "${SCRUB}" "${SANDBOX_ROOT}/skills/scrub/scrub.sh"
+chmod +x "${SANDBOX_ROOT}/skills/scrub/scrub.sh"
+SANDBOX_SCRUB="${SANDBOX_ROOT}/skills/scrub/scrub.sh"
+SANDBOX_SKILL_CFG_DIR="${SANDBOX_ROOT}/skills/scrub/config"
+SANDBOX_ROOT_CFG_DIR="${SANDBOX_ROOT}/config"
+
+# run_scrub_sandboxed <stdin-file-or-/dev/null> [scrub.sh args...]
+# Same contract as run_scrub, but invokes the sandboxed copy so
+# SCRUB_ROOT_DIR-relative config resolution reads the sandboxed fixtures
+# below instead of anything under the real workspace root.
+run_scrub_sandboxed() {
+  local stdin_file="$1"
+  shift
+  local stdout_file="${TMP_DIR}/sandbox-stdout.$$"
+  local stderr_file="${TMP_DIR}/sandbox-stderr.$$"
+
+  if "${SANDBOX_SCRUB}" "$@" < "${stdin_file}" >"${stdout_file}" 2>"${stderr_file}"; then
+    LAST_EXIT=0
+  else
+    LAST_EXIT=$?
+  fi
+  LAST_STDOUT="$(cat "${stdout_file}")"
+  LAST_STDERR="$(cat "${stderr_file}")"
+  rm -f "${stdout_file}" "${stderr_file}"
+}
+
+# 30. Skill-local config (skills/scrub/config/publish-gate.conf) loads with
+# no root config present -- personal class fires, no deprecation notice.
+CASE_NUM=$((CASE_NUM + 1))
+mkdir -p "${SANDBOX_SKILL_CFG_DIR}"
+printf 'FAIL|identity|(^|[^A-Za-z0-9_])skillmarker([^A-Za-z0-9_]|$)\n' > "${SANDBOX_SKILL_CFG_DIR}/publish-gate.conf"
+skill_local_file="$(write_fixture skill-local.txt 'this line has skillmarker in it
+')"
+run_scrub_sandboxed /dev/null --profile publish "${skill_local_file}"
+report_case "${CASE_NUM}" "publish: skill-local config loads and fires (no root fallback present)" 1 "${LAST_EXIT}" "[FAIL] identity" "${LAST_STDOUT}"
+
+CASE_NUM=$((CASE_NUM + 1))
+case "${LAST_STDERR}" in
+  *deprecated*)
+    echo "FAIL: ${CASE_NUM}. publish: skill-local config loading prints no deprecation notice"
+    FAILED=$((FAILED + 1))
+    ;;
+  *)
+    echo "PASS: ${CASE_NUM}. publish: skill-local config loading prints no deprecation notice"
+    PASSED=$((PASSED + 1))
+    ;;
+esac
+rm -f "${SANDBOX_SKILL_CFG_DIR}/publish-gate.conf"
+
+# 31. Deprecated workspace-root config (config/publish-gate.conf) loads when
+# no skill-local config exists -- personal class fires AND a deprecation
+# notice is printed to stderr.
+CASE_NUM=$((CASE_NUM + 1))
+mkdir -p "${SANDBOX_ROOT_CFG_DIR}"
+printf 'FAIL|identity|(^|[^A-Za-z0-9_])rootmarker([^A-Za-z0-9_]|$)\n' > "${SANDBOX_ROOT_CFG_DIR}/publish-gate.conf"
+root_fallback_file="$(write_fixture root-fallback.txt 'this line has rootmarker in it
+')"
+run_scrub_sandboxed /dev/null --profile publish "${root_fallback_file}"
+report_case "${CASE_NUM}" "publish: deprecated root config loads when skill-local is absent" 1 "${LAST_EXIT}" "[FAIL] identity" "${LAST_STDOUT}"
+
+CASE_NUM=$((CASE_NUM + 1))
+report_case "${CASE_NUM}" "publish: deprecated root config prints a deprecation notice on stderr" 1 "${LAST_EXIT}" "deprecated" "${LAST_STDERR}"
+
+# 32. Precedence: when BOTH configs exist, skill-local wins -- a root-only
+# marker must not fire, and no deprecation notice prints.
+CASE_NUM=$((CASE_NUM + 1))
+mkdir -p "${SANDBOX_SKILL_CFG_DIR}"
+printf 'FAIL|identity|(^|[^A-Za-z0-9_])skillmarker([^A-Za-z0-9_]|$)\n' > "${SANDBOX_SKILL_CFG_DIR}/publish-gate.conf"
+precedence_file="$(write_fixture precedence.txt 'this line has rootmarker in it, nothing else
+')"
+run_scrub_sandboxed /dev/null --profile publish "${precedence_file}"
+report_case "${CASE_NUM}" "publish: skill-local config takes precedence over the deprecated root config" 0 "${LAST_EXIT}"
+
+CASE_NUM=$((CASE_NUM + 1))
+case "${LAST_STDERR}" in
+  *deprecated*)
+    echo "FAIL: ${CASE_NUM}. publish: skill-local precedence prints no deprecation notice"
+    FAILED=$((FAILED + 1))
+    ;;
+  *)
+    echo "PASS: ${CASE_NUM}. publish: skill-local precedence prints no deprecation notice"
+    PASSED=$((PASSED + 1))
+    ;;
+esac
+rm -f "${SANDBOX_SKILL_CFG_DIR}/publish-gate.conf" "${SANDBOX_ROOT_CFG_DIR}/publish-gate.conf"
+
+# 33. Neither config exists: the fallback notice on stderr names the
+# skill-local path (current contract), not the deprecated root one.
+CASE_NUM=$((CASE_NUM + 1))
+neither_file="$(write_fixture neither.txt 'plain clean text, nothing here
+')"
+run_scrub_sandboxed /dev/null --profile publish "${neither_file}"
+report_case "${CASE_NUM}" "publish: no config anywhere reports the skill-local path in the fallback notice" 0 "${LAST_EXIT}" "skills/scrub/config/publish-gate.conf" "${LAST_STDERR}"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 

@@ -18,11 +18,14 @@
 #     than "post a PR to the team": catches your personal identity,
 #     your org's internal systems/people, personal-workflow assumptions, and
 #     credential-shaped strings. Personal pattern classes load from a config
-#     file (default: config/publish-gate.conf at the workspace root — the
-#     private overlay, never exported with this skill); a small set of
-#     universal, non-personal credential-shape checks is hardcoded below and
-#     always active. See scrub.md ("Publish profile") for the full class
-#     list, config format, and rationale.
+#     file — the private overlay, never exported with this skill. Resolved in
+#     this order: the SCRUB_PUBLISH_PROFILE env var (explicit override), then
+#     skills/scrub/config/publish-gate.conf (skill-local, current contract),
+#     then a workspace-root config/publish-gate.conf (deprecated fallback,
+#     kept for one release — a stderr note fires when it's the one that
+#     loads). A small set of universal, non-personal credential-shape checks
+#     is hardcoded below and always active. See scrub.md ("Publish profile")
+#     for the full class list, config format, and rationale.
 #
 # Token classes (internal-jargon profile, case-sensitive unless noted):
 #   fd-ref          FD-<digits>                         e.g. FD-020
@@ -94,8 +97,9 @@ SCRIPT_NAME="scrub.sh"
 
 # Workspace root, resolved relative to this script's own location — never a
 # hardcoded absolute home path. Only consumed by the --profile publish branch
-# (to find config/publish-gate.conf), but harmless to compute unconditionally:
-# no side effects, and the default profile never reads it.
+# (to find publish-gate.conf, skill-local or the deprecated root fallback),
+# but harmless to compute unconditionally: no side effects, and the default
+# profile never reads it.
 SCRUB_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 usage() {
@@ -112,9 +116,11 @@ Profiles:
                      public straper registry — identity, org-internal,
                      personal-workflow, branding, and credential-shape
                      checks. Personal classes load from
-                     config/publish-gate.conf (or the SCRUB_PUBLISH_PROFILE env var);
-                     credential-shape checks are always active, even with
-                     no config file loaded.
+                     skills/scrub/config/publish-gate.conf (or the
+                     SCRUB_PUBLISH_PROFILE env var; a workspace-root
+                     config/publish-gate.conf is a deprecated fallback,
+                     kept for one release); credential-shape checks are
+                     always active, even with no config file loaded.
 
 Token classes (default profile):
   fd-ref          FD-<digits>
@@ -382,8 +388,27 @@ if [ "$PROFILE" = "publish" ]; then
   # -------------------------------------------------------------------------
   # --profile publish: privacy gate for exporting workspace modules to the
   # public straper registry.
+  #
+  # Config resolution order: SCRUB_PUBLISH_PROFILE env var (explicit
+  # override), then the skill-local config (current contract), then a
+  # workspace-root config (deprecated fallback, kept for one release so a
+  # workspace that hasn't migrated yet doesn't silently lose its personal
+  # pattern classes).
   # -------------------------------------------------------------------------
-  PUBLISH_CONFIG="${SCRUB_PUBLISH_PROFILE:-${SCRUB_ROOT_DIR}/config/publish-gate.conf}"
+  SKILL_LOCAL_PUBLISH_CONFIG="${SCRUB_ROOT_DIR}/skills/scrub/config/publish-gate.conf"
+  ROOT_PUBLISH_CONFIG="${SCRUB_ROOT_DIR}/config/publish-gate.conf"
+
+  if [ -n "${SCRUB_PUBLISH_PROFILE:-}" ]; then
+    PUBLISH_CONFIG="$SCRUB_PUBLISH_PROFILE"
+  elif [ -f "$SKILL_LOCAL_PUBLISH_CONFIG" ]; then
+    PUBLISH_CONFIG="$SKILL_LOCAL_PUBLISH_CONFIG"
+  elif [ -f "$ROOT_PUBLISH_CONFIG" ]; then
+    PUBLISH_CONFIG="$ROOT_PUBLISH_CONFIG"
+    echo "${SCRIPT_NAME}: deprecated: loading personal publish profile from workspace-root config/publish-gate.conf — move it to skills/scrub/config/publish-gate.conf" >&2
+  else
+    PUBLISH_CONFIG="$SKILL_LOCAL_PUBLISH_CONFIG"
+  fi
+
   CFG_PATTERNS="${TMP_DIR}/publish-patterns.txt"
   : > "$CFG_PATTERNS"
 
