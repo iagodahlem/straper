@@ -29,6 +29,36 @@ function sanitizeBranchName(branchName) {
   return branchName.replace(/\//g, '--');
 }
 
+// ---------------------------------------------------------------------------
+// repos integration (soft dependency — see worktree.md, "Base clone sync")
+// ---------------------------------------------------------------------------
+
+// Feature-detects the repos skill (skills/repos/repos.sh) and, when present,
+// fast-forwards the base clone before a worktree is cut from it — the whole
+// point being that a stale repos/<repo> clone should never silently send a
+// new worktree onto an ancient commit. Deliberately NOT a require()/import of
+// anything under skills/repos/ — this is a plain fs.existsSync + spawnSync,
+// so worktree stays self-contained and works unchanged with repos absent.
+// A sync failure (dirty clone, local commits, diverged history, no network)
+// is printed as a warning and never blocks worktree creation: repos sync only
+// ever advances a clone, it never gates the workflow that depends on it.
+function syncBaseClone(repo) {
+  const reposScript = path.join(ROOT_DIR, 'skills', 'repos', 'repos.sh');
+  if (!fs.existsSync(reposScript)) {
+    return; // repos skill not installed — silently degrade, as designed.
+  }
+
+  const result = spawnSync('bash', [reposScript, 'sync', repo], {
+    cwd: ROOT_DIR,
+    encoding: 'utf8',
+    stdio: 'inherit',
+  });
+
+  if (result.status !== 0) {
+    console.error(`Warning: repos sync for '${repo}' did not complete cleanly — continuing with the base clone's current state.`);
+  }
+}
+
 function resolveBaseRef(repoPath, baseBranch) {
   if (!baseBranch) {
     const remoteHead = spawnSync('git', ['-C', repoPath, 'symbolic-ref', 'refs/remotes/origin/HEAD'], {
@@ -74,9 +104,10 @@ function commandWorktree(args) {
   const branchName = args[1];
   const baseBranch = getArgValue(args, '--base');
   const dryRun = hasFlag(args, '--dry-run');
+  const noSync = hasFlag(args, '--no-sync');
 
   if (!repo || !branchName) {
-    throw new Error('Usage: the workspace CLI (scripts/ router) worktree <repo> <branch-name> [--base <branch>] [--dry-run]');
+    throw new Error('Usage: the workspace CLI (scripts/ router) worktree <repo> <branch-name> [--base <branch>] [--no-sync] [--dry-run]');
   }
 
   const branchPrefix = readBranchPrefix();
@@ -92,6 +123,13 @@ function commandWorktree(args) {
   const repoPath = path.join(ROOT_DIR, 'repos', repo);
   if (!fs.existsSync(repoPath)) {
     throw new Error(`Repo not found: repos/${repo}`);
+  }
+
+  // Fast-forward the base clone before branching off it — see syncBaseClone.
+  // Skipped under --dry-run (nothing should mutate the clone during a preview)
+  // and --no-sync (explicit escape hatch, e.g. offline work).
+  if (!dryRun && !noSync) {
+    syncBaseClone(repo);
   }
 
   const worktreeName = `${repo}--${sanitizeBranchName(branchName)}`;

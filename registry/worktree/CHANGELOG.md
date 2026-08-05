@@ -1,5 +1,9 @@
 # worktree changelog
 
+## 0.1.5 — 2026-08-04
+
+Sync the base clone via the repos skill (when installed) before cutting a worktree, so a stale `repos/<repo>` clone can no longer send a new worktree onto an ancient commit. Soft dependency — feature-detected, no-ops when repos isn't installed — with a `--no-sync` escape hatch.
+
 ## 0.1.4 — 2026-07-28
 
 Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.

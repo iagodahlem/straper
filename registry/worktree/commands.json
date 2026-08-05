@@ -6,6 +6,7 @@
     "args": "<repo> <branch-name>",
     "flags": [
       { "flag": "--base <branch>", "summary": "Base branch/ref (default: the remote's default branch, else main)." },
+      { "flag": "--no-sync", "summary": "Skip syncing the base clone via the repos skill, when installed (escape hatch)." },
       { "flag": "--dry-run", "summary": "Preview without fetching or creating the worktree." }
     ]
   }
