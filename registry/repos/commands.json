@@ -1,0 +1,17 @@
+[
+  {
+    "command": "repos",
+    "summary": "Fast-forward and inspect base clones under repos/ before worktrees branch off them.",
+    "handler": "repos-commands.js#commandRepos",
+    "args": "<sync|status|guard> [args]",
+    "flags": [
+      { "flag": "--all", "summary": "With sync, fast-forward every clone under repos/." },
+      { "flag": "--json", "summary": "With status, emit machine-readable output." }
+    ],
+    "subcommands": [
+      { "name": "sync", "summary": "Fast-forward one clone (or --all) to its default branch's upstream. Refuses on dirty/ahead state." },
+      { "name": "status", "summary": "One line per clone: branch, ahead/behind upstream, dirty/clean." },
+      { "name": "guard", "summary": "Advisory-only staleness warning (stderr, always exits 0)." }
+    ]
+  }
+]

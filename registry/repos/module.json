@@ -1,0 +1,11 @@
+{
+  "name": "repos",
+  "type": "skill",
+  "version": "0.1.0",
+  "deps": [],
+  "config_keys": [
+    "staleness_days"
+  ],
+  "source_commit": "aaaebd957d88356887b60358a76c962c29a47769",
+  "published_at": "2026-08-05T00:18:32.000Z"
+}
