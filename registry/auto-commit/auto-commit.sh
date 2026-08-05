@@ -54,25 +54,35 @@ commit_group "chore: update workspace config" ".claude/"
 # Group 6: Scripts and agent definitions
 commit_group "chore: update workspace scripts" "scripts/" "agents/"
 
-# Group 7: Skills
+# Group 7: Skill-owned jobs (skills/<name>/jobs/) — claimed here, ahead of the
+# generic Skills group below, so they land under their own message instead of
+# the catch-all "update skills" one.
+commit_group "chore: update skill jobs" "skills/**/jobs/**"
+
+# Group 8: Skill-owned config (skills/<name>/config/) — same reasoning as
+# Group 7, claimed ahead of the generic Skills group.
+commit_group "chore: update skill config" "skills/**/config/**"
+
+# Group 9: Skills
 commit_group "chore: update skills" "skills/"
 
-# Group 8: Project hubs
+# Group 10: Project hubs
 commit_group "chore: update project hubs" "projects/"
 
-# Group 9: Scheduler jobs
+# Group 11: Scheduler jobs (deprecated workspace-root jobs/ — kept for the
+# skill-owned config/jobs migration's one-release compatibility window)
 commit_group "chore: update scheduler jobs" "jobs/"
 
-# Group 10: Docs
+# Group 12: Docs
 commit_group "chore: update docs" "docs/"
 
-# Group 11: Workspace config (config, completions)
+# Group 13: Workspace config (config, completions)
 commit_group "chore: update workspace config" "config/" "completions/"
 
-# Group 12: Root workspace files
+# Group 14: Root workspace files
 commit_group "chore: update workspace" "SOUL.md" "USER.md" "TOOLS.md" "BOOT.md" "AGENTS.md" "preferences.json" ".gitignore" ".env.example"
 
-# Group 13: Vault
+# Group 15: Vault
 commit_group "chore: update vault" "vault/"
 
 if [ "$committed" -eq 0 ]; then
