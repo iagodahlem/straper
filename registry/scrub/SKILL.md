@@ -144,16 +144,25 @@ default, once `--profile publish`) for full coverage before an export.
 skills/scrub/scrub.sh --profile publish [--strict] [--quiet] [file ...]
 ```
 
-### Config file: why it lives in root `config/`, not `skills/scrub/`
+### Config file: why a personal config can safely live in `skills/scrub/`
 
 Personal pattern classes (`identity`, `org-internal`, `personal-workflow`,
-`branding`) load from `config/publish-gate.conf` — at the **workspace
-root**, not inside `skills/scrub/`. This is deliberate: root `config/` is
-your personal overlay, deliberately outside anything packaged when
-`skills/` is exported to the public straper registry. If these patterns
-lived inside `skills/scrub/` instead, exporting the scrub skill would ship
-your own name, your org's internal repo/people/domain list, and your timezone
-straight into a public registry — exactly what this gate exists to prevent.
+`branding`) load from `skills/scrub/config/publish-gate.conf` — inside this
+skill's own `config/` dir, per the skill-owned config contract (see
+`docs/concepts.md`, "Skill-owned config and jobs"). A config file that
+carries something this sensitive is the contract's one gitignored case: it
+never gets committed, so it travels with this workspace only, never with a
+`straper publish` of the scrub skill itself — publishing only ever picks up
+git-tracked files. Ship a `publish-gate.conf.example` alongside it (committed)
+documenting the format, exactly like any other skill-local secret-bearing
+config.
+
+Before this contract, the same file lived at a **workspace-root**
+`config/publish-gate.conf`, kept outside `skills/` specifically so it could
+never be swept into an export. That workaround is no longer necessary — the
+gitignore is what actually keeps it out, not which directory it's under — but
+the root path is still read as a fallback for one release: see "Config
+resolution order" below.
 
 The credential-shape checks (Slack/GitHub/AWS/Anthropic/OpenAI token shapes,
 the publishable-key decode-check, the entropy backstop) are the opposite case:
@@ -162,16 +171,25 @@ they're hardcoded directly in `scrub.sh` because they're **not personal** —
 exported skill, you included. So the exported skill still runs a real (if
 reduced) gate with zero configuration: `--profile publish` never no-ops.
 
-Override the config path with the `SCRUB_PUBLISH_PROFILE` env var — useful
-for testing a draft config, or pointing at a different overlay entirely:
+### Config resolution order
 
-```bash
-SCRUB_PUBLISH_PROFILE=/path/to/other-gate.conf skills/scrub/scrub.sh --profile publish file.md
-```
+1. The `SCRUB_PUBLISH_PROFILE` env var (explicit override) — useful for
+   testing a draft config, or pointing at a different overlay entirely:
 
-When no config is found at the resolved path (missing, or unreadable), scrub
-prints a notice to stderr and falls back to the hardcoded credentials-shape
-checks only — it never fails silently or skips scanning entirely.
+   ```bash
+   SCRUB_PUBLISH_PROFILE=/path/to/other-gate.conf skills/scrub/scrub.sh --profile publish file.md
+   ```
+
+2. `skills/scrub/config/publish-gate.conf` — the skill-local config, current
+   contract.
+3. `config/publish-gate.conf` at the workspace root — deprecated fallback,
+   kept for one release so a workspace that hasn't migrated its config yet
+   doesn't silently lose its personal pattern classes. Loading from here
+   prints a deprecation notice to stderr.
+
+When no config is found at any of the above, scrub prints a notice to stderr
+and falls back to the hardcoded credentials-shape checks only — it never
+fails silently or skips scanning entirely.
 
 ### Config format
 
@@ -191,9 +209,10 @@ just has to not start with one of those two literal prefixes. The regex
 field may itself contain `|` (ERE alternation, e.g. `(internal-repo|other-repo)`)
 — the parser splits on the first two pipes only, so this is safe.
 
-The real config lives at `config/publish-gate.conf` (git-tracked, but not
-under `skills/`), with classes grouped by remediation bucket in its own
-comments.
+The real config lives at `skills/scrub/config/publish-gate.conf` (gitignored
+— see "Config file" above), with classes grouped by remediation bucket in its
+own comments. A committed `publish-gate.conf.example` alongside it documents
+the shape for a fresh workspace.
 
 ### Token classes (`--profile publish`)
 
@@ -233,9 +252,9 @@ $ echo $?
 
 A non-clean result means: rewrite the flagged lines (genericize, move to
 config, or drop) per the remediation bucket noted in
-`config/publish-gate.conf`'s comments, then re-run until clean — same loop
-as the default profile's Execution step 2 above, just against a stricter
-bar.
+`skills/scrub/config/publish-gate.conf`'s comments, then re-run until clean —
+same loop as the default profile's Execution step 2 above, just against a
+stricter bar.
 
 ## Consumers
 
