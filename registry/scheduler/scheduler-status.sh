@@ -4,8 +4,12 @@
 #
 # PURE READ + FORMAT. It NEVER runs a job, never spawns claude -p, never mutates
 # state. It reads:
-#   - jobs/*/*.md            (one self-contained per-job def — same glob the
-#                             scheduler uses; naturally excludes jobs/README.md)
+#   - skills/*/jobs/*/*.md   (one self-contained per-job def per skill — same
+#                             glob the scheduler uses; naturally excludes a
+#                             jobs/README.md schema doc)
+#   - jobs/*/*.md            (deprecated workspace-root jobs, read too for one
+#                             release — see docs/concepts.md "Skill-owned
+#                             config and jobs")
 #   - .scheduler/state/<id>.json   (last_run, last_result_hash, in_flight)
 #   - .metrics/scheduler.jsonl     (run history → last result + exit code)
 #   - skills/scheduler/install.sh --status   (is the LaunchAgent LOADED?)
@@ -64,7 +68,8 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOM
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR" || exit 1
 
-JOBS_DIR="$ROOT_DIR/jobs"
+SKILLS_DIR="$ROOT_DIR/skills"
+JOBS_DIR="$ROOT_DIR/jobs"   # deprecated workspace-root location — still read for one release
 STATE_DIR="$ROOT_DIR/.scheduler/state"
 METRICS_FILE="$ROOT_DIR/.metrics/scheduler.jsonl"
 INSTALL_SH="$ROOT_DIR/skills/scheduler/install.sh"
@@ -412,7 +417,7 @@ scheduler_loaded() {
 collect_files() {
   shopt -s nullglob
   local f
-  for f in "$JOBS_DIR"/*/*.md; do
+  for f in "$SKILLS_DIR"/*/jobs/*/*.md "$JOBS_DIR"/*/*.md; do
     [[ "$(basename "$f")" == "README.md" ]] && continue
     printf '%s\n' "$f"
   done
@@ -590,12 +595,12 @@ EOF
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 main() {
-  if [[ ! -d "$JOBS_DIR" ]]; then
+  if [[ -z "$(collect_files)" ]]; then
     if [[ "${1:-}" == "--json" ]]; then
       jq -nc --arg g "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         '{scheduler_loaded:false, generated_at:$g, jobs:[]}'
     else
-      printf 'No jobs/ dir at %s\n' "$JOBS_DIR"
+      printf 'No job files found under %s/*/jobs/ or %s\n' "$SKILLS_DIR" "$JOBS_DIR"
     fi
     exit 0
   fi

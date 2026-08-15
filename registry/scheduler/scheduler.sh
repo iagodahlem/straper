@@ -7,7 +7,9 @@
 # a genuinely-due job runs.
 #
 # Each tick:
-#   1. Iterate jobs/*/*.md (one per-job folder def), parse YAML-ish frontmatter.
+#   1. Iterate skills/*/jobs/*/*.md (one per-job folder def, owned by the skill
+#      that defines it), parse YAML-ish frontmatter. A workspace-root jobs/
+#      directory is still read too, for one release — see JOBS_DIR below.
 #   2. DUE-CHECK (zero-inference, pure bash/jq/date) against per-job state.
 #   3. CLAIM-BEFORE-ACT — write in_flight before running so overlapping ticks
 #      stand down.
@@ -35,7 +37,8 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOM
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR" || exit 1
 
-JOBS_DIR="$ROOT_DIR/jobs"
+SKILLS_DIR="$ROOT_DIR/skills"
+JOBS_DIR="$ROOT_DIR/jobs"   # deprecated workspace-root location — still read for one release
 STATE_DIR="$ROOT_DIR/.scheduler/state"
 METRICS_FILE="$ROOT_DIR/.metrics/scheduler.jsonl"
 JOB_LOGS_DIR="$ROOT_DIR/.metrics/job-logs"   # failure forensics — one <id>-last-fail.log, overwritten each time
@@ -520,19 +523,32 @@ run_job() {
 
 # --- Main tick ---------------------------------------------------------------
 main() {
-  if [[ ! -d "$JOBS_DIR" ]]; then
-    log "no jobs/ dir — nothing to do"
-    exit 0
+  shopt -s nullglob
+
+  # Skill-local jobs (current contract): each skill owns its own jobs under
+  # skills/<name>/jobs/<id>/. The skills/*/jobs/*/*.md glob matches those
+  # per-folder defs and naturally excludes any jobs/README.md schema doc
+  # sitting at a skill's jobs/ root.
+  local skill_job_files=("$SKILLS_DIR"/*/jobs/*/*.md)
+
+  # Workspace-root jobs/ (deprecated, kept read-compatible for one release —
+  # see docs/concepts.md "Skill-owned config and jobs"). Loaded in addition to
+  # skill-local jobs, never instead of them.
+  local root_job_files=()
+  if [[ -d "$JOBS_DIR" ]]; then
+    root_job_files=("$JOBS_DIR"/*/*.md)
   fi
 
-  shopt -s nullglob
+  if [[ ${#root_job_files[@]} -gt 0 ]]; then
+    printf '[scheduler] deprecated: workspace-root jobs/ is still loaded but deprecated — move job folders under skills/<name>/jobs/ (see scheduler.md, "add-job")\n' >&2
+  fi
+
   local any=0
-  # Each job is a self-contained folder jobs/<id>/ holding <id>.md (+ optional
-  # run.sh). The jobs/*/*.md glob matches those per-folder defs and naturally
-  # EXCLUDES the schema doc jobs/README.md, which sits at the jobs/ root. The
-  # README.md guard remains as a harmless safeguard for any doc dropped inside
-  # a job folder.
-  for file in "$JOBS_DIR"/*/*.md; do
+  # Each job is a self-contained folder <jobs-dir>/<id>/ holding <id>.md (+
+  # optional run.sh). The README.md guard remains a harmless safeguard for any
+  # doc dropped inside a job folder — the globs above already exclude a
+  # README.md sitting at a jobs/ root.
+  for file in "${skill_job_files[@]}" "${root_job_files[@]}"; do
     [[ "$(basename "$file")" == "README.md" ]] && continue
     any=1
     run_job "$file"
