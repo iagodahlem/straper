@@ -1,9 +1,5 @@
 # session-review changelog
 
-## 0.1.6 — 2026-08-22
-
-Publish session-review v0.1.6.
-
 ## 0.1.5 — 2026-07-28
 
 Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.

@@ -1,7 +1,7 @@
 {
   "name": "session-review",
   "type": "skill",
-  "version": "0.1.6",
+  "version": "0.1.5",
   "deps": [
     "fd",
     "memory",
@@ -10,6 +10,6 @@
     "worktree"
   ],
   "config_keys": [],
-  "source_commit": "02117b31f647df2e917ab03ca97ab5406a6c16b3",
-  "published_at": "2026-08-22T20:08:52.109Z"
+  "source_commit": "c1e75694fe08558bee127f83783825f740ce25a1",
+  "published_at": "2026-07-29T01:38:13.232Z"
 }
