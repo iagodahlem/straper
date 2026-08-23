@@ -1,9 +1,9 @@
 {
   "name": "memory",
   "type": "skill",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "deps": [],
   "config_keys": [],
-  "source_commit": "c3e885e73b8ecdd50d42d13d9ea9e72fb157b3e9",
-  "published_at": "2026-07-15T19:17:31.068Z"
+  "source_commit": "6a9345d9abefbae63779546bfc944301f3177ae0",
+  "published_at": "2026-08-23T06:30:31.139Z"
 }

@@ -206,9 +206,9 @@ by calling the shared helper — never hand-write the JSON:
 
 ```bash
 source scripts/lib/skills.sh
-skills_log_event memory "<action>" /memory <duration_ms> true "" "<model-id>"
+skills_log memory "<action>" /memory <duration_ms> true "" "<model-id>"
 ```
 
 `<action>` is the resolved subcommand (`save` / `index` / `status` / default).
-`skills_log_event` builds the row via jq and pins `at` to UTC `Z`. If `.metrics/`
+`skills_log` builds the row via jq and pins `at` to UTC `Z`. If `.metrics/`
 is unavailable, skip silently — never fail the run over metrics.
