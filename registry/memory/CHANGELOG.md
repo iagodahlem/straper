@@ -1,5 +1,9 @@
 # memory changelog
 
+## 0.1.2 — 2026-08-23
+
+Publish memory v0.1.2.
+
 ## 0.1.1 — 2026-07-15
 
 Publish memory v0.1.1.
