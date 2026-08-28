@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { execSync } from 'node:child_process'
-import { access, mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -399,6 +399,97 @@ describe(
         expect(output).toContain('fd')
         expect(output).toContain('ship')
         expect(output).toContain('task')
+      })
+    })
+
+    // ------------------------------------------------------------------
+    // 5. Trigger-collision warnings
+    // ------------------------------------------------------------------
+    // skills_validate WARNs (never fails) when two skills declare the same
+    // trigger — the failure mode addyosmani/agent-skills' Tier 2 eval catches
+    // via TF-IDF collision detection. straper's version is a plain string
+    // match over the `triggers` frontmatter field: advisory, not a gate.
+    describe('trigger-collision validation', () => {
+      async function writeAdHocSkill(wsDir: string, name: string, triggers: string[]): Promise<void> {
+        const dir = join(wsDir, 'skills', name)
+        await mkdir(dir, { recursive: true })
+        const triggerLines = triggers.map((t) => `  - ${t}`).join('\n')
+        await writeFile(
+          join(dir, `${name}.md`),
+          `---\nname: ${name}\ndescription: Test skill ${name}\nversion: 1\nvisibility: user\ntriggers:\n${triggerLines}\ndepends_on: []\ncomposes: []\n---\n\n## Purpose\n\nTest skill for trigger-collision coverage.\n`,
+          'utf-8',
+        )
+      }
+
+      it('warns when two skills declare the same trigger', async () => {
+        const wsDir = await scaffold('collidebot')
+        await writeAdHocSkill(wsDir, 'alpha', ['/shared', '/alpha-only'])
+        await writeAdHocSkill(wsDir, 'beta', ['/shared'])
+
+        const output = runInWorkspace(
+          "bash -c 'source scripts/lib/skills.sh && skills_validate'",
+          wsDir,
+        )
+        expect(output).toContain("WARN: alpha and beta both declare trigger '/shared'")
+        // Advisory only — both skills still pass validation.
+        expect(output).toContain('PASS: alpha')
+        expect(output).toContain('PASS: beta')
+      })
+
+      it('does not warn when no skills share a trigger', async () => {
+        const wsDir = await scaffold('nocollidebot')
+        await writeAdHocSkill(wsDir, 'alpha', ['/alpha'])
+        await writeAdHocSkill(wsDir, 'beta', ['/beta'])
+
+        const output = runInWorkspace(
+          "bash -c 'source scripts/lib/skills.sh && skills_validate'",
+          wsDir,
+        )
+        expect(output).not.toContain('WARN')
+      })
+
+      it('excludes a skill matching against itself', async () => {
+        const wsDir = await scaffold('selfbot')
+        await writeAdHocSkill(wsDir, 'solo', ['/solo'])
+
+        const output = runInWorkspace(
+          "bash -c 'source scripts/lib/skills.sh && skills_validate'",
+          wsDir,
+        )
+        expect(output).not.toContain('WARN')
+        expect(output).toContain('PASS: solo')
+      })
+    })
+
+    // ------------------------------------------------------------------
+    // 6. Plain-markdown skill export
+    // ------------------------------------------------------------------
+    // The hedge against being locked to the straper/Claude Code surface:
+    // `skills export <name> --format claude-md` renders a module as one
+    // ordinary markdown file, readable by any harness with no straper
+    // tooling — unlike skills_export's .tar.gz + manifest.json, which only
+    // round-trips through straper's own skills_import.
+    describe('claude-md export', () => {
+      it('exports a real module as a self-contained plain markdown file', async () => {
+        const wsDir = await scaffold('exportbot')
+        await add({ modules: ['memory'], dir: wsDir, registry: REPO_REGISTRY })
+
+        const output = runInWorkspace(
+          'node scripts/exportbot.js skills export memory --format claude-md',
+          wsDir,
+        )
+        const match = /Exported: (.+\.claude\.md)/.exec(output)
+        expect(match).not.toBeNull()
+        const exportedPath = match![1].trim()
+
+        const content = await readFile(exportedPath, 'utf-8')
+        expect(content).toContain('# memory')
+        expect(content).toContain('Manage workspace memory')
+        expect(content).toContain('Memory Skill')
+        // The straper-specific frontmatter block is gone — only its body remains.
+        expect(content).not.toContain('backing_script:')
+        expect(content).not.toContain('visibility:')
+        expect(content).not.toContain('cli_command:')
       })
     })
   },
