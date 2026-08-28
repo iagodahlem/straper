@@ -325,6 +325,26 @@ scan_credential_keys() {
 # personal config is loaded — see the --profile publish branch below). Same
 # boundary-check style as run_scan() above ([^A-Za-z0-9_] instead of \b — \b
 # is not POSIX ERE, so this stays portable across awk implementations).
+#
+# Credentials-shape checks test the VALUE side of a match (the part after a
+# known prefix like "xoxp-", or after a "token:"/"token=" delimiter), not
+# just "does the line look credential-shaped": a captured value that reads as
+# an obvious placeholder (REPLACE_WITH_, YOUR_, CHANGE_ME, an <angle-bracket>
+# template, xxx-masking, or the words example/dummy/placeholder) is not a
+# FAIL — unless that same value also contains a 20+ char run of mixed
+# letters+digits, which reads as a real generated token regardless of a
+# coincidental placeholder-looking label (see is_placeholder()/
+# has_realshaped_run() below). This is what lets a slack.env.example fixture
+# value like "xoxp-REPLACE_WITH_REAL_TOKEN" pass while a real-shaped
+# "xoxp-8261..." token still fails, in that same example file.
+#
+# In .md files, the generic keyword+delimiter check (token|secret|key|...
+# followed by ":"/"=") is additionally restricted outside fenced code blocks
+# to require an ALL_CAPS_IDENTIFIER immediately before the delimiter, so
+# prose that merely *names* an env var ("Add SLACK_USER_TOKEN to ...") does
+# not trip on a stray sentence colon ("If no token: report ..."). Assignments
+# inside fenced code blocks use the same loose keyword match as any other
+# file, so a real credential pasted into a ```code block still fails.
 run_scan_publish() {
   local force_src="$1"
   shift
@@ -347,6 +367,52 @@ run_scan_publish() {
       }
       close(PATTERNS_FILE)
     }
+    # after_match(hay, re) — the substring of hay following the first match
+    # of re, or "" if re does not match. Callers use this right after their
+    # own match() call, so this internal match() overwriting RSTART/RLENGTH
+    # is safe (nothing upstream still needs the outer match position).
+    function after_match(hay, re,    p) {
+      p = match(hay, re)
+      if (p == 0) return ""
+      return substr(hay, RSTART + RLENGTH)
+    }
+    # has_realshaped_run(val) — true if val contains a contiguous run of 20+
+    # [A-Za-z0-9] chars that mixes at least one digit with at least one
+    # letter. Real generated tokens look like this; placeholder phrases
+    # (REPLACE_WITH_REAL_TOKEN, YOUR_API_KEY_HERE) do not, either because
+    # underscores break up the run or because the phrase is letters-only.
+    function has_realshaped_run(val,    p, run) {
+      p = match(val, /[A-Za-z0-9]{20,}/)
+      if (p == 0) return 0
+      run = substr(val, RSTART, RLENGTH)
+      return (run ~ /[0-9]/ && run ~ /[A-Za-z]/)
+    }
+    # is_placeholder(val) — true if val looks like an obvious placeholder
+    # (not a real credential), false otherwise. An angle-bracket template is
+    # always a placeholder (that syntax cannot be a real secret). Any other
+    # placeholder marker only counts if val has no 20+ char mixed run
+    # elsewhere — a placeholder-looking prefix in front of a real high-
+    # entropy tail is still treated as a real leak.
+    function is_placeholder(val,    lv) {
+      if (val ~ /<[^<>]*>/) return 1
+      lv = tolower(val)
+      if (lv ~ /replace_with/ || lv ~ /your_/ || lv ~ /change_?me/ || \
+          lv ~ /xxx+/ || lv ~ /example/ || lv ~ /dummy/ || lv ~ /placeholder/) {
+        return has_realshaped_run(val) ? 0 : 1
+      }
+      return 0
+    }
+    # check_prefixed(line, full_re, prefix_re) — matches full_re (boundary +
+    # prefix + value chars) in line; if found, extracts the value after
+    # prefix_re and emits a FAIL row unless that value is a placeholder.
+    function check_prefixed(line, full_re, prefix_re,    p, full, val) {
+      p = match(line, full_re)
+      if (p == 0) return
+      full = substr(line, RSTART, RLENGTH)
+      val = after_match(full, prefix_re)
+      if (!is_placeholder(val))
+        print src US FNR US "credentials-shape" US "FAIL" US trimmed
+    }
     {
       src = (FORCE_SRC != "") ? FORCE_SRC : FILENAME
       line = $0
@@ -354,23 +420,60 @@ run_scan_publish() {
       gsub(/^[ \t]+/, "", trimmed)
       gsub(/[ \t]+$/, "", trimmed)
       ll = tolower(line)
+      is_md = (src ~ /\.md$/)
+      if (FNR == 1) in_fence = 0
+      if (line ~ /^[ \t]*```/) in_fence = !in_fence
 
       # Universal credentials-shape checks — hardcoded (not personal),
       # always active regardless of whether a personal config is loaded.
-      if (line ~ /(^|[^A-Za-z0-9_])xox[pboa]-[A-Za-z0-9-]{8,}/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (line ~ /(^|[^A-Za-z0-9_])sk-ant-[A-Za-z0-9_-]{8,}/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (line ~ /(^|[^A-Za-z0-9_])sk-proj-[A-Za-z0-9_-]{8,}/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (line ~ /(^|[^A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{10,}/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (line ~ /(^|[^A-Za-z0-9_])AKIA[0-9A-Z]{16}([^A-Za-z0-9_]|$)/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (line ~ /(^|[^0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}([^A-Za-z0-9_]|$)/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
-      if (ll ~ /(token|secret|key|password|credential)[[:space:]]*[:=]/ && line ~ /[A-Za-z0-9+\/=_-]{32,}/)
-        print src US FNR US "credentials-shape" US "FAIL" US trimmed
+      # Regexes are passed as STRINGS, not /regex/ literals: awk evaluates a
+      # bare /regex/ used as a plain function argument as "$0 ~ /regex/"
+      # (a boolean), not as the pattern itself — a real gotcha, not style.
+      check_prefixed(line, "(^|[^A-Za-z0-9_])xox[pboa]-[A-Za-z0-9-]{8,}", "xox[pboa]-")
+      check_prefixed(line, "(^|[^A-Za-z0-9_])sk-ant-[A-Za-z0-9_-]{8,}", "sk-ant-")
+      check_prefixed(line, "(^|[^A-Za-z0-9_])sk-proj-[A-Za-z0-9_-]{8,}", "sk-proj-")
+      check_prefixed(line, "(^|[^A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{10,}", "gh[pousr]_")
+
+      if (match(line, /(^|[^A-Za-z0-9_])AKIA[0-9A-Z]{16}/)) {
+        full = substr(line, RSTART, RLENGTH)
+        p2 = match(full, /AKIA[0-9A-Z]{16}/)
+        val = substr(full, p2 + 4, 16)
+        if (!is_placeholder(val))
+          print src US FNR US "credentials-shape" US "FAIL" US trimmed
+      }
+
+      if (match(line, /(^|[^0-9])[0-9]{8,10}:[A-Za-z0-9_-]{35}/)) {
+        full = substr(line, RSTART, RLENGTH)
+        p2 = match(full, /:[A-Za-z0-9_-]{35}/)
+        val = substr(full, p2 + 1, 35)
+        if (!is_placeholder(val))
+          print src US FNR US "credentials-shape" US "FAIL" US trimmed
+      }
+
+      # Generic "token:"/"token=" keyword check. Outside fenced code blocks
+      # in .md files, require an ALL_CAPS identifier immediately before the
+      # delimiter (real env-var assignment shape) instead of the bare
+      # lowercase keyword substring, so prose naming an env var in a
+      # sentence ("If no token: report ...") does not trip it. Inside
+      # fenced blocks, and in every non-.md file, keep the loose match.
+      p = 0
+      if (is_md && !in_fence) {
+        p = match(line, /[A-Z][A-Z0-9_]*(TOKEN|SECRET|KEY|PASSWORD|CREDENTIAL)[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*/)
+      } else {
+        p = match(ll, /(token|secret|key|password|credential)[[:space:]]*[:=][[:space:]]*/)
+      }
+      if (p > 0) {
+        rest = substr(line, RSTART + RLENGTH)
+        val = ""
+        if (rest ~ /^<[^<>]*>/) {
+          match(rest, /^<[^<>]*>/)
+          val = substr(rest, RSTART, RLENGTH)
+        } else if (match(rest, /^[A-Za-z0-9+\/=_-]+/) && RSTART == 1) {
+          val = substr(rest, RSTART, RLENGTH)
+        }
+        if (length(val) >= 32 && !is_placeholder(val))
+          print src US FNR US "credentials-shape" US "FAIL" US trimmed
+      }
 
       # Personal classes — config-driven (identity, clerk-internal,
       # personal-workflow, branding, plus the credentials-shape WARNs like

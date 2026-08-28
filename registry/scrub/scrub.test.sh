@@ -473,6 +473,98 @@ run_scrub_sandboxed /dev/null --profile publish "${neither_file}"
 report_case "${CASE_NUM}" "publish: no config anywhere reports the skill-local path in the fallback notice" 0 "${LAST_EXIT}" "skills/scrub/config/publish-gate.conf" "${LAST_STDERR}"
 
 # ---------------------------------------------------------------------------
+# --profile publish: credentials-shape placeholder awareness
+# ---------------------------------------------------------------------------
+# These exercise the VALUE-side placeholder check (not just "does the line
+# look credential-shaped") plus the .md prose-vs-fenced-code-block
+# distinction for the generic token:/token= keyword check. Real regression
+# case: skills/slack-status/config/slack.env.example and slack-status.md
+# used to fail the gate on a placeholder value and a doc sentence naming the
+# env var, with no real credential anywhere in either file.
+
+# 34. A placeholder value (REPLACE_WITH_...) after a real credential prefix
+# passes clean, even in an .env.example file.
+CASE_NUM=$((CASE_NUM + 1))
+placeholder_prefix_file="$(write_fixture placeholder-prefix.env.example 'SLACK_USER_TOKEN=xoxp-REPLACE_WITH_REAL_TOKEN
+')"
+run_scrub /dev/null --profile publish "${placeholder_prefix_file}"
+report_case "${CASE_NUM}" "publish: placeholder value after a credential prefix passes clean" 0 "${LAST_EXIT}"
+
+# 35. A real-shaped value with the same prefix, in the same kind of file,
+# still fails -- proves .example files are not wholesale exempted.
+CASE_NUM=$((CASE_NUM + 1))
+realshaped_prefix_file="$(write_fixture realshaped-prefix.env.example 'SLACK_USER_TOKEN=xoxp-8261a9f3e8b7c1d2e3f4a5b6c7d8e9f0
+')"
+run_scrub /dev/null --profile publish "${realshaped_prefix_file}"
+report_case "${CASE_NUM}" "publish: real-shaped value after the same prefix still fails in an .example file" 1 "${LAST_EXIT}" "[FAIL] credentials-shape" "${LAST_STDOUT}"
+
+# 36. .md prose naming an env var, with a stray sentence colon right after
+# "token", passes clean -- no assignment, just documentation.
+CASE_NUM=$((CASE_NUM + 1))
+md_prose_file="$(write_fixture md-prose.md '- If no token: report "No Slack token configured. Add SLACK_USER_TOKEN to skills/slack-status/config/slack.env"
+')"
+run_scrub /dev/null --profile publish "${md_prose_file}"
+report_case "${CASE_NUM}" "publish: .md prose naming an env var (no assignment) passes clean" 0 "${LAST_EXIT}"
+
+# 37. The same real-shaped assignment, pasted inside a fenced code block in
+# an .md file, still fails -- fenced code is not exempted just for being
+# inside a .md file.
+CASE_NUM=$((CASE_NUM + 1))
+md_fenced_file="$(write_fixture md-fenced.md '```bash
+SLACK_USER_TOKEN=xoxp-8261a9f3e8b7c1d2e3f4a5b6c7d8e9f0
+```
+')"
+run_scrub /dev/null --profile publish "${md_fenced_file}"
+report_case "${CASE_NUM}" "publish: real-shaped assignment inside a .md fenced code block still fails" 1 "${LAST_EXIT}" "[FAIL] credentials-shape" "${LAST_STDOUT}"
+
+# 38. Paranoia backstop: a placeholder-looking prefix (YOUR_) immediately
+# followed by 20+ chars of mixed letters+digits is NOT treated as a
+# placeholder -- still fails.
+CASE_NUM=$((CASE_NUM + 1))
+paranoia_file="$(write_fixture paranoia.env.example 'SLACK_USER_TOKEN=xoxp-YOUR_TOKENabc123XYZ890fedCBA456ghIJKL
+')"
+run_scrub /dev/null --profile publish "${paranoia_file}"
+report_case "${CASE_NUM}" "publish: placeholder prefix + 20+ char mixed tail still fails (paranoia backstop)" 1 "${LAST_EXIT}" "[FAIL] credentials-shape" "${LAST_STDOUT}"
+
+# 39. An angle-bracket template value passes clean -- that syntax can never
+# be a real credential.
+CASE_NUM=$((CASE_NUM + 1))
+angle_bracket_file="$(write_fixture angle-bracket.env.example 'SLACK_USER_TOKEN=<your-slack-user-token>
+')"
+run_scrub /dev/null --profile publish "${angle_bracket_file}"
+report_case "${CASE_NUM}" "publish: angle-bracket template value passes clean" 0 "${LAST_EXIT}"
+
+# 40. AWS's own canonical placeholder access key (AKIAIOSFODNN7EXAMPLE, used
+# throughout AWS's docs) passes clean.
+CASE_NUM=$((CASE_NUM + 1))
+akia_placeholder_file="$(write_fixture akia-placeholder.env.example 'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+')"
+run_scrub /dev/null --profile publish "${akia_placeholder_file}"
+report_case "${CASE_NUM}" "publish: AWS canonical placeholder access key (...EXAMPLE) passes clean" 0 "${LAST_EXIT}"
+
+# 41. A real-shaped AKIA key (no placeholder keyword) still fails.
+CASE_NUM=$((CASE_NUM + 1))
+akia_real_file="$(write_fixture akia-real.env.example 'AWS_ACCESS_KEY_ID=AKIA2K3J9X8N4M6P1Q7R
+')"
+run_scrub /dev/null --profile publish "${akia_real_file}"
+report_case "${CASE_NUM}" "publish: real-shaped AKIA key still fails" 1 "${LAST_EXIT}" "[FAIL] credentials-shape" "${LAST_STDOUT}"
+
+# 42. sk-ant- prefix with a placeholder value passes clean (spot-checks a
+# second prefixed check, not just xoxp-).
+CASE_NUM=$((CASE_NUM + 1))
+skant_placeholder_file="$(write_fixture skant-placeholder.env.example 'ANTHROPIC_API_KEY=sk-ant-REPLACE_WITH_YOUR_KEY
+')"
+run_scrub /dev/null --profile publish "${skant_placeholder_file}"
+report_case "${CASE_NUM}" "publish: sk-ant- prefix with a placeholder value passes clean" 0 "${LAST_EXIT}"
+
+# 43. sk-ant- prefix with a real-shaped value still fails.
+CASE_NUM=$((CASE_NUM + 1))
+skant_real_file="$(write_fixture skant-real.env.example 'ANTHROPIC_API_KEY=sk-ant-8f3a9c1b7e2d4f6a8c0b2e4d6f8a1c3e
+')"
+run_scrub /dev/null --profile publish "${skant_real_file}"
+report_case "${CASE_NUM}" "publish: sk-ant- prefix with a real-shaped value still fails" 1 "${LAST_EXIT}" "[FAIL] credentials-shape" "${LAST_STDOUT}"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
