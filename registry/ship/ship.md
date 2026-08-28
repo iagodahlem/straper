@@ -72,3 +72,7 @@ The module is self-contained. It ships:
 /ship --dry-run
 → Auto-detect worktree from cwd, show what would run without executing
 ```
+
+## Follow-ups
+
+This pipeline stops at push (and PR creation, if `--create-pr` was given) — it does not merge. `pre-merge` (`skills/pre-merge/pre-merge.md`) is the intended back half: run it against the opened PR before any `gh pr merge`, for the stacked-PR, shared-contract rebase, approval-record, and lockfile-drift checks `ship` does not cover.

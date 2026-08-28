@@ -1,5 +1,9 @@
 # ship changelog
 
+## 0.1.5 — 2026-08-28
+
+Publish ship v0.1.5.
+
 ## 0.1.4 — 2026-07-28
 
 Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
