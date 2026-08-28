@@ -51,7 +51,7 @@ const BUILTINS = [
   {
     command: 'skills',
     summary: 'List, validate, sync, export, or import workspace skills.',
-    args: '<list|validate [skill]|stats|sync|export <name>|export --all|import <path>>',
+    args: '<list|validate [skill]|stats|sync|export <name> [--format claude-md]|export --all|import <path>>',
     subcommands: [
       { name: 'list' }, { name: 'validate' }, { name: 'stats' },
       { name: 'sync' }, { name: 'export' }, { name: 'import' },
@@ -635,14 +635,27 @@ function commandSkills(args) {
       bashScript = `source ${quotedLib} && skills_generate_index && skills_sync_commands`;
       break;
     case 'export': {
-      const exportAll = args.includes('--all');
-      const exportName = exportAll ? null : args[1];
+      const formatIdx = args.indexOf('--format');
+      const format = formatIdx !== -1 ? args[formatIdx + 1] : null;
+      const positional = formatIdx !== -1
+        ? args.filter((_, i) => i !== formatIdx && i !== formatIdx + 1)
+        : args;
+      const exportAll = positional.includes('--all');
+      const exportName = exportAll ? null : positional[1];
       if (!exportAll && !exportName) {
-        throw new Error(`Usage: scripts/${AGENT_NAME} skills export <name> | scripts/${AGENT_NAME} skills export --all`);
+        throw new Error(`Usage: scripts/${AGENT_NAME} skills export <name> [--format claude-md] | scripts/${AGENT_NAME} skills export --all`);
+      }
+      if (format && format !== 'claude-md') {
+        throw new Error(`Unsupported export format '${format}' — only 'claude-md' is supported.`);
+      }
+      if (format === 'claude-md' && exportAll) {
+        throw new Error(`--format claude-md exports one module at a time — use: scripts/${AGENT_NAME} skills export <name> --format claude-md`);
       }
       bashScript = exportAll
         ? `source ${quotedLib} && skills_export_all`
-        : `source ${quotedLib} && skills_export ${shellQuote(exportName)}`;
+        : format === 'claude-md'
+          ? `source ${quotedLib} && skills_export_claude_md ${shellQuote(exportName)}`
+          : `source ${quotedLib} && skills_export ${shellQuote(exportName)}`;
       break;
     }
     case 'import': {
@@ -654,7 +667,7 @@ function commandSkills(args) {
       break;
     }
     default:
-      throw new Error(`Usage: scripts/${AGENT_NAME} skills <list|validate [skill]|stats [--skill NAME] [--since DURATION]|sync|export <name>|export --all|import <path>>`);
+      throw new Error(`Usage: scripts/${AGENT_NAME} skills <list|validate [skill]|stats [--skill NAME] [--since DURATION]|sync|export <name> [--format claude-md]|export --all|import <path>>`);
   }
 
   const result = spawnSync('bash', ['-c', bashScript], { cwd: ROOT_DIR, stdio: 'inherit' });

@@ -231,9 +231,12 @@ skills_resolve_script() {
 #   - depends_on references valid skill names
 #   - composes targets valid skill names
 #   - No duplicate names across skills
+#   - WARN (non-fatal): two skills declare the same trigger — see
+#     _skills_check_trigger_collisions. Collisions can be intentional, so
+#     this never fails validation or affects the exit code.
 #
 # Usage: skills_validate [name]
-# Output: PASS/FAIL per skill with details
+# Output: PASS/FAIL per skill with details, plus any trigger-collision WARNs
 # Exit: 0 if all pass, 1 if any fail
 # ---------------------------------------------------------------------------
 skills_validate() {
@@ -258,8 +261,10 @@ skills_validate() {
 
   # If targeting a specific skill, validate just that one
   if [[ -n "$target" ]]; then
-    _skills_validate_one "$target" all_names[@]
-    return $?
+    local target_rc=0
+    _skills_validate_one "$target" all_names[@] || target_rc=$?
+    _skills_check_trigger_collisions all_names[@] "$target"
+    return $target_rc
   fi
 
   # Validate all skills
@@ -284,6 +289,8 @@ skills_validate() {
       any_fail=1
     fi
   done
+
+  _skills_check_trigger_collisions all_names[@]
 
   return $any_fail
 }
@@ -423,6 +430,70 @@ _skills_validate_one() {
     done
     return 1
   fi
+}
+
+# ---------------------------------------------------------------------------
+# _skills_check_trigger_collisions — WARN when two skills share a trigger
+#
+# Compares the `triggers` frontmatter field pairwise across known skills and
+# prints one WARN line per skill pair that declares the same trigger string.
+# A skill is never compared against itself. This is advisory only: it never
+# fails validation or sets a non-zero exit code, since two skills declaring
+# the same trigger can be an intentional override rather than a mistake —
+# it just needs to be visible.
+#
+# Usage: _skills_check_trigger_collisions <all_names_array_ref> [target]
+#   <all_names_array_ref>  name of an array variable holding all known skill names
+#   [target]                if given, only report collisions involving this skill
+# Output: one "WARN: <a> and <b> both declare trigger '<trigger>'" line per collision
+# Exit: always 0
+# ---------------------------------------------------------------------------
+_skills_check_trigger_collisions() {
+  local arr_name="$1"
+  local target="${2:-}"
+  local -a names=()
+  eval 'names=("${'$arr_name'}")'
+
+  local n=${#names[@]}
+  local i j
+  for (( i = 0; i < n; i++ )); do
+    for (( j = i + 1; j < n; j++ )); do
+      local name_a="${names[$i]}"
+      local name_b="${names[$j]}"
+      if [[ -n "$target" && "$name_a" != "$target" && "$name_b" != "$target" ]]; then
+        continue
+      fi
+      _skills_report_trigger_collision "$name_a" "$name_b"
+    done
+  done
+
+  return 0
+}
+
+# Internal: print a WARN for every trigger both skills declare in common.
+# Usage: _skills_report_trigger_collision <name_a> <name_b>
+_skills_report_trigger_collision() {
+  local name_a="$1"
+  local name_b="$2"
+  [[ "$name_a" == "$name_b" ]] && return 0
+
+  local file_a="$_SKILLS_DIR/$name_a/${name_a}.md"
+  local file_b="$_SKILLS_DIR/$name_b/${name_b}.md"
+  [[ -f "$file_a" && -f "$file_b" ]] || return 0
+
+  local triggers_a triggers_b
+  triggers_a="$(skills_get_field "$file_a" "triggers" 2>/dev/null)"
+  triggers_b="$(skills_get_field "$file_b" "triggers" 2>/dev/null)"
+  [[ -z "$triggers_a" || -z "$triggers_b" ]] && return 0
+
+  while IFS= read -r trig; do
+    [[ -z "$trig" ]] && continue
+    if grep -Fxq -- "$trig" <<< "$triggers_b"; then
+      echo "WARN: $name_a and $name_b both declare trigger '$trig'"
+    fi
+  done <<< "$triggers_a"
+
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -814,6 +885,11 @@ _skills_compute_cutoff() {
 # Skills can be exported as portable .tar.gz archives and imported into
 # other workspaces. Each archive contains the skill directory contents
 # plus a manifest.json with metadata and file checksums.
+#
+# Skills can also be exported as a single plain markdown file
+# (skills_export_claude_md) — no archive, no manifest, no straper tooling
+# needed to read it back. That format doesn't round-trip through
+# skills_import; it's a one-way hedge for consumption outside straper.
 # ===========================================================================
 
 _EXPORTS_DIR="$_SKILLS_ROOT_DIR/.exports"
@@ -978,6 +1054,78 @@ skills_export_all() {
   done <<< "$skill_names"
 
   echo "Export complete: $count exported, $failed failed"
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# skills_export_claude_md — Render a skill as a single plain markdown file
+#
+# skills_export produces a .tar.gz + manifest.json that only round-trips
+# through straper's own skills_import — useful for moving a skill between
+# straper workspaces, but useless to a harness that has no straper tooling.
+# This is the hedge for that case: it strips the straper-specific frontmatter
+# (name/version/visibility/triggers/backing_script/cli_command/depends_on/
+# composes) and writes the skill's description plus body as one ordinary
+# CLAUDE.md-style markdown file — no archive, no manifest, nothing to parse
+# beyond markdown itself.
+#
+# Usage: skills_export_claude_md <name>
+# Output: writes .exports/<name>.claude.md, prints the path
+# Exit: 0 on success, 1 if the skill fails validation or is not found
+# ---------------------------------------------------------------------------
+skills_export_claude_md() {
+  local name="${1:?skills_export_claude_md: skill name required}"
+
+  local dir
+  dir="$(skills_resolve_dir "$name" 2>/dev/null)" || {
+    _skills_error "skill not found: $name"
+    return 1
+  }
+
+  # Validate before exporting (dir is re-resolved after, per the same known
+  # issue noted in skills_export: skills_validate clobbers $dir in caller scope).
+  if ! skills_validate "$name" >/dev/null 2>&1; then
+    _skills_error "skill '$name' failed validation — fix issues before exporting"
+    skills_validate "$name"
+    return 1
+  fi
+  dir="$(skills_resolve_dir "$name")"
+  local file="$dir/${name}.md"
+
+  local description depends_on_raw
+  description="$(skills_get_field "$file" "description" 2>/dev/null)"
+  depends_on_raw="$(skills_get_field "$file" "depends_on" 2>/dev/null)"
+
+  # Body = everything after the closing frontmatter fence, with the blank
+  # line the fence leaves behind trimmed off the top.
+  local body
+  body="$(awk '
+    NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; next }
+    in_fm && /^---[[:space:]]*$/ { in_fm = 0; past_fm = 1; next }
+    in_fm { next }
+    past_fm { print }
+  ' "$file" | sed '/./,$!d')"
+
+  _skills_ensure_exports_dir
+  local out_path="$_EXPORTS_DIR/${name}.claude.md"
+
+  {
+    echo "# ${name}"
+    echo ""
+    if [[ -n "$description" ]]; then
+      echo "$description"
+      echo ""
+    fi
+    if [[ -n "$depends_on_raw" ]]; then
+      local deps_line
+      deps_line="$(echo "$depends_on_raw" | paste -sd ',' - | sed 's/,/, /g')"
+      echo "> This skill depends on: ${deps_line}. They are not included in this export — this file is meant to stand alone as plain guidance, not to be resolved by straper's dependency graph."
+      echo ""
+    fi
+    printf '%s\n' "$body"
+  } > "$out_path"
+
+  echo "Exported: $out_path"
   return 0
 }
 
