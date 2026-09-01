@@ -236,6 +236,43 @@ function discoverTaskFiles() {
     .sort();
 }
 
+function maxTaskNum(fileNames) {
+  let max = 0;
+  for (const f of fileNames) {
+    const match = f.match(/^TASK-(\d{3})\.json$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > max) max = n;
+    }
+  }
+  return max;
+}
+
+// Two sessions creating tasks before either pushes can pick the same next
+// ID off their own local tasks/ dir alone (both landed TASK-106 the same
+// day). Checking origin/main's tasks/ tree too closes that window — it
+// doesn't eliminate it (a third session could still race between this
+// fetch and its own push), but it fixes the common case.
+function remoteMaxTaskNum() {
+  const fetch = spawnSync('git', ['fetch', 'origin'], { cwd: ROOT_DIR, stdio: 'pipe' });
+  if (fetch.status !== 0) {
+    console.error('task: git fetch origin failed — next ID picked from local tasks/ only');
+    return 0;
+  }
+
+  const lsTree = spawnSync('git', ['ls-tree', '--name-only', 'origin/main:tasks'], {
+    cwd: ROOT_DIR,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8',
+  });
+  if (lsTree.status !== 0) {
+    console.error('task: could not read tasks/ from origin/main — next ID picked from local tasks/ only');
+    return 0;
+  }
+
+  return maxTaskNum(lsTree.stdout.split('\n').filter(Boolean));
+}
+
 function createTask(title) {
   const trimmedTitle = title.trim();
   if (trimmedTitle.length === 0) {
@@ -243,15 +280,7 @@ function createTask(title) {
   }
 
   const existingFiles = discoverTaskFiles();
-
-  let nextNum = 1;
-  if (existingFiles.length > 0) {
-    const lastFile = existingFiles[existingFiles.length - 1];
-    const match = lastFile.match(/TASK-(\d{3})/);
-    if (match) {
-      nextNum = parseInt(match[1], 10) + 1;
-    }
-  }
+  const nextNum = Math.max(maxTaskNum(existingFiles), remoteMaxTaskNum()) + 1;
 
   const taskId = `TASK-${String(nextNum).padStart(3, '0')}`;
   const now = nowIso();

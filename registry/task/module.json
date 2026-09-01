@@ -1,9 +1,9 @@
 {
   "name": "task",
   "type": "skill",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "deps": [],
   "config_keys": [],
-  "source_commit": "d79bf5caf0b19c3cb9112dc2d8b3c045fbec0ae1",
-  "published_at": "2026-07-15T21:18:23.051Z"
+  "source_commit": "a95494665d1209395f88c854138d33f2f02ed546",
+  "published_at": "2026-09-01T06:30:36.901Z"
 }
