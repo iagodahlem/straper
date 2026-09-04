@@ -99,11 +99,138 @@ function printVersion(): void {
   console.log(VERSION)
 }
 
+function printInitHelp(): void {
+  console.log(`straper init <name> [options]
+
+Scaffold a new agent workspace.
+
+Options:
+  --dir <path>          Target directory (default: ./<name>)
+  --user <name>         User name for workspace config
+  --role <role>         User role (default: "Software Engineer")
+  --project <name>      Project name
+  --description <desc>  Project description
+
+See also: straper init --adopt --help`)
+}
+
+function printInitAdoptHelp(): void {
+  console.log(`straper init --adopt [options]
+
+Adopt an existing workspace into module management (no scaffolding).
+
+Options:
+  --dir <path>          Target directory (default: current directory)
+  --registry <dir>      Registry directory for --adopt (default: STRAPER_REGISTRY_DIR or bundled)`)
+}
+
+function printAddHelp(): void {
+  console.log(`straper add <module...> [options]
+
+Vendor registry modules into a workspace.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --registry <dir>      Registry directory (default: STRAPER_REGISTRY_DIR or bundled registry)
+  --no-agents-dir       Skip the universal .agents/skills/<name>/SKILL.md pointer (or STRAPER_NO_AGENTS_DIR=1)`)
+}
+
+function printUseHelp(): void {
+  console.log(`straper use <module> [options]
+
+Print a skill for one-off session use (nothing installed).
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --registry <dir>      Registry directory (default: STRAPER_REGISTRY_DIR or bundled registry)`)
+}
+
+function printUpdateHelp(): void {
+  console.log(`straper update [module...] [options]
+
+Update vendored modules, merging local edits.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --registry <dir>      Registry directory (default: STRAPER_REGISTRY_DIR or bundled registry)`)
+}
+
+function printDoctorHelp(): void {
+  console.log(`straper doctor [options]
+
+Check vendored module health.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)`)
+}
+
+function printDriftHelp(): void {
+  console.log(`straper drift [options]
+
+Report published skills that drifted from the ledger.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --quiet               Silent when clean; print a one-line warning only on drift (used at boot)`)
+}
+
+function printPublishHelp(): void {
+  console.log(`straper publish <module> [options]
+
+Publish a workspace skill into a registry checkout.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --registry-repo <path>  Registry repo checkout to publish into (or STRAPER_REGISTRY_REPO)`)
+}
+
+function printMigrateHelp(): void {
+  console.log(`straper migrate [options]
+
+Migrate a pre-registry workspace onto the registry model.
+
+Options:
+  --dir <path>          Workspace directory (default: current directory)
+  --registry <dir>      Registry directory (default: STRAPER_REGISTRY_DIR or bundled registry)
+  --dry-run             Show planned changes without modifying files`)
+}
+
+function printStatusHelp(): void {
+  console.log(`straper status
+
+Show workspace status. Reads ~/.config/straper/workspaces.json, a machine-global registry, not scoped to the current project.`)
+}
+
+const COMMAND_HELP: Record<string, () => void> = {
+  init: printInitHelp,
+  add: printAddHelp,
+  use: printUseHelp,
+  update: printUpdateHelp,
+  doctor: printDoctorHelp,
+  drift: printDriftHelp,
+  publish: printPublishHelp,
+  migrate: printMigrateHelp,
+  status: printStatusHelp,
+}
+
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const args = argv
 
-  if (args.length === 0 || hasFlag(args, '--help', '-h')) {
+  if (args.length === 0) {
     printHelp()
+    return
+  }
+
+  const command = args[0]
+
+  if (hasFlag(args, '--help', '-h')) {
+    if (command === 'init' && hasFlag(args, '--adopt')) {
+      printInitAdoptHelp()
+    } else if (Object.prototype.hasOwnProperty.call(COMMAND_HELP, command)) {
+      COMMAND_HELP[command]()
+    } else {
+      printHelp()
+    }
     return
   }
 
@@ -111,8 +238,6 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     printVersion()
     return
   }
-
-  const command = args[0]
 
   switch (command) {
     case 'init': {
