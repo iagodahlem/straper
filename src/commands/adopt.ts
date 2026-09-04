@@ -72,7 +72,7 @@ export async function adoptWorkspace(args: AdoptArgs): Promise<void> {
     if (manifest.type !== 'skill') continue
 
     const registryFiles = await collectDirFiles(join(registryRoot, name), { skipRootMeta: true })
-    const workingFiles = await collectDirFiles(skillDir)
+    const workingFiles = await collectDirFiles(skillDir, { skipRootMeta: true })
 
     if (mapsEqual(registryFiles, workingFiles)) {
       await adoptModule(ctx, name, manifest, skillDir, registryFiles)
