@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -364,6 +365,86 @@ describe('add — skills/lib/metrics.js metrics sink', () => {
     second.restore()
 
     expect(await readFile(sinkPath, 'utf-8')).toBe('// hand-edited sink\n')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Runtime baseline (scripts/lib/cli-utils.js, scripts/lib/skills.sh)
+// ---------------------------------------------------------------------------
+
+describe('add — runtime baseline vendoring', () => {
+  it('vendors the runtime baseline into a bare (non-init) target, matching scaffold source bytes', async () => {
+    const log = captureLog()
+    await add({ modules: ['task'], dir: wsDir, registry: REPO_REGISTRY })
+    log.restore()
+
+    const scaffoldRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scaffold')
+
+    const cliUtilsDest = join(wsDir, 'scripts', 'lib', 'cli-utils.js')
+    expect(await exists(cliUtilsDest)).toBe(true)
+    expect(await readFile(cliUtilsDest, 'utf-8')).toBe(
+      await readFile(join(scaffoldRoot, 'scripts', 'lib', 'cli-utils.js'), 'utf-8'),
+    )
+
+    const skillsShDest = join(wsDir, 'scripts', 'lib', 'skills.sh')
+    expect(await exists(skillsShDest)).toBe(true)
+    expect(await readFile(skillsShDest, 'utf-8')).toBe(
+      await readFile(join(scaffoldRoot, 'scripts', 'lib', 'skills.sh'), 'utf-8'),
+    )
+  })
+
+  it('actually runs the vendored skill in a bare repo without a missing-module crash', async () => {
+    const log = captureLog()
+    await add({ modules: ['task'], dir: wsDir, registry: REPO_REGISTRY })
+    log.restore()
+
+    const require = createRequire(import.meta.url)
+    const commandsPath = join(wsDir, 'skills', 'task', 'task-commands.js')
+    expect(() => require(commandsPath)).not.toThrow()
+    const mod = require(commandsPath) as Record<string, unknown>
+    expect(typeof mod.commandTask).toBe('function')
+  })
+
+  it('is not lockfile-tracked, mirroring the metrics sink', async () => {
+    await writeModule('alpha')
+    const log = captureLog()
+    await add({ modules: ['alpha'], dir: wsDir, registry: registryDir })
+    log.restore()
+
+    const paths = (await readLock()).modules['alpha'].files.map((f) => f.path)
+    expect(paths).not.toContain('scripts/lib/cli-utils.js')
+    expect(paths).not.toContain('scripts/lib/skills.sh')
+  })
+
+  it('never overwrites an existing baseline file (init-scaffolded or hand-edited)', async () => {
+    const cliUtilsDest = join(wsDir, 'scripts', 'lib', 'cli-utils.js')
+    await mkdir(dirname(cliUtilsDest), { recursive: true })
+    await writeFile(cliUtilsDest, '// hand-edited baseline\n', 'utf-8')
+
+    await writeModule('alpha')
+    const log = captureLog()
+    await add({ modules: ['alpha'], dir: wsDir, registry: registryDir })
+    log.restore()
+
+    expect(await readFile(cliUtilsDest, 'utf-8')).toBe('// hand-edited baseline\n')
+  })
+
+  it('does not duplicate or clobber the baseline across a second CLI-wired skill install', async () => {
+    const log1 = captureLog()
+    await add({ modules: ['task'], dir: wsDir, registry: REPO_REGISTRY })
+    log1.restore()
+
+    const cliUtilsDest = join(wsDir, 'scripts', 'lib', 'cli-utils.js')
+    const firstBytes = await readFile(cliUtilsDest, 'utf-8')
+
+    const log2 = captureLog()
+    await add({ modules: ['ship'], dir: wsDir, registry: REPO_REGISTRY })
+    log2.restore()
+
+    expect(await readFile(cliUtilsDest, 'utf-8')).toBe(firstBytes)
+
+    const require = createRequire(import.meta.url)
+    expect(() => require(join(wsDir, 'skills', 'ship', 'ship-commands.js'))).not.toThrow()
   })
 })
 

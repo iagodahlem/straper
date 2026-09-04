@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
 
+import { RUNTIME_BASELINE_V1 } from '../baseline.js'
 import { REGISTRY_DIR, SCAFFOLD_DIR } from '../constants.js'
 
 export interface ModuleManifest {
@@ -393,6 +394,28 @@ export async function ensureMetricsSink(workspaceDir: string): Promise<void> {
   const bytes = await readFile(src)
   await mkdir(dirname(dest), { recursive: true })
   await writeFile(dest, bytes)
+}
+
+/**
+ * Copy the blessed runtime baseline (RUNTIME_BASELINE_V1: scripts/lib/cli-utils.js,
+ * scripts/lib/skills.sh) into the workspace, file by file, if not already present.
+ * CLI-wired skills `require()`/`source` these paths without declaring them as a
+ * dependency, on the assumption every scaffolded workspace ships them. `add` and
+ * `migrate` are the only paths that vendor a skill outside `init`, so this is the
+ * point where a workspace that skipped `init` (a bare `straper add` target) needs
+ * the same substrate created for it. Same never-overwrite contract as
+ * ensureMetricsSink: a workspace with its own copy (scaffolded by `init`, or
+ * hand-edited) keeps it untouched.
+ */
+export async function ensureRuntimeBaseline(workspaceDir: string): Promise<void> {
+  for (const rel of RUNTIME_BASELINE_V1) {
+    const dest = join(workspaceDir, ...rel.split('/'))
+    if (await fileExists(dest)) continue
+    const src = join(SCAFFOLD_DIR, ...rel.split('/'))
+    const bytes = await readFile(src)
+    await mkdir(dirname(dest), { recursive: true })
+    await writeFile(dest, bytes)
+  }
 }
 
 async function fileExists(path: string): Promise<boolean> {
