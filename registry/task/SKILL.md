@@ -64,6 +64,8 @@ node skills/task/task.js create "Title here"
 
 Creates a new `TASK-###.json` in `tasks/` with auto-incremented ID, `backlog` status, and empty arrays for all collection fields. Validates the file after creation.
 
+The next ID is `max(highest local tasks/*.json, highest tasks/*.json on origin/main) + 1` — before picking it, the script runs `git fetch origin` and reads `origin/main:tasks/` so two sessions creating a task before either has pushed don't both land on the same ID. If the fetch fails (offline, no `origin` remote), it warns on stderr and falls back to local-only numbering, same as before.
+
 ### list
 
 ```bash
