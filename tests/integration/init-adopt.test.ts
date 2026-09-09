@@ -79,6 +79,20 @@ async function materializeSkill(name: string): Promise<void> {
   }
 }
 
+/**
+ * Materialize skills/<name>/ as a literal hand copy of the registry source,
+ * metadata files (module.json, CHANGELOG.md) included -- the natural result
+ * of `cp -r` rather than a curated vendor step.
+ */
+async function copySkillVerbatim(name: string): Promise<void> {
+  const src = join(registryDir, name)
+  const dest = join(wsDir, 'skills', name)
+  await mkdir(dest, { recursive: true })
+  for (const entry of await readdir(src, { withFileTypes: true })) {
+    await writeFile(join(dest, entry.name), await readFile(join(src, entry.name)))
+  }
+}
+
 async function readLock(dir = wsDir): Promise<{
   lockfileVersion: number
   modules: Record<
@@ -163,6 +177,23 @@ describe('init --adopt — exact-match adoption', () => {
     for (const ref of entry.files) {
       expect(ref.sha256).toBe(sha256File(await readFile(join(wsDir, ref.path))))
     }
+  })
+
+  it('adopts a hand-copied working tree that still carries registry metadata files', async () => {
+    await writeModule('alpha', { version: '1.2.0', extra: { 'logic.js': 'v1\n' } })
+    await copySkillVerbatim('alpha') // workspace still has module.json/CHANGELOG.md, like a raw `cp -r`
+
+    const out = await silently(() => adoptWorkspace({ dir: wsDir, registry: registryDir }))
+
+    expect(out).toContain('adopted alpha@1.2.0')
+    expect(out).not.toContain('differs from registry')
+    const lock = await readLock()
+    expect(lock.modules['alpha']).toBeDefined()
+    expect(lock.modules['alpha'].version).toBe('1.2.0')
+    // The metadata files a hand copy would carry are never part of the vendored file set.
+    const paths = lock.modules['alpha'].files.map((f) => f.path)
+    expect(paths).not.toContain('skills/alpha/module.json')
+    expect(paths).not.toContain('skills/alpha/CHANGELOG.md')
   })
 
   it('ignores registry SKILL.md metadata and still byte-matches the workspace', async () => {
