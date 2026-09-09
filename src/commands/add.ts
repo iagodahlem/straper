@@ -13,6 +13,7 @@ import {
   dedupe,
   deriveDescription,
   ensureMetricsSink,
+  ensureRuntimeBaseline,
   error,
   pointerTargets,
   readLock,
@@ -120,10 +121,11 @@ async function vendorModule(
   const baseDir = baseDirFor(ctx.workspaceDir, name)
 
   // Vendoring the first module is what makes skills/ start to exist in this
-  // workspace — the framework substrate (currently just the metrics sink)
+  // workspace — the framework substrate (metrics sink + runtime baseline)
   // rides along at that same moment. Never runs at `init`, and never
-  // overwrites a workspace's own skills/lib/metrics.js.
+  // overwrites a workspace's own copies of these files.
   await ensureMetricsSink(ctx.workspaceDir)
+  await ensureRuntimeBaseline(ctx.workspaceDir)
 
   const moduleFiles = await collectDirFiles(moduleDir, { skipRootMeta: true })
 
