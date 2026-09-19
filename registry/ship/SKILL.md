@@ -6,7 +6,7 @@ visibility: user
 triggers:
   - /ship
 cli_command: ship
-depends_on: []
+depends_on: [scrub]
 composes: []
 ---
 
@@ -43,8 +43,9 @@ Run the full pre-PR pipeline for a worktree: typecheck and lint (and optionally 
    d. Computes the diff against the base branch for review context.
    e. Builds a PR title (latest commit message or `--title`) and body.
    f. Runs `skills/scrub/scrub.sh` against the drafted PR title, body, and latest commit message before creating or updating the PR (`gh pr create`/`gh pr edit`) — a non-clean result blocks the pipeline and the text must be rewritten and rescanned (see [[scrub]]).
-   g. If `--push` or `--create-pr`: pushes branch to origin.
-   h. If `--create-pr`: creates a GitHub PR via `gh pr create`.
+   g. Before pushing and before creating the PR: runs `skills/scrub/scrub.sh public-check <worktree> --base <branch>` (skipped/no-op for a private repo) — a hit (a personal term in the diff, a commit message, the branch name, or the drafted PR body) blocks the pipeline the same way a failed verify does; rewrite the offending commit/branch/text and rescan (see [[scrub]] "Personal terms").
+   h. If `--push` or `--create-pr`: pushes branch to origin.
+   i. If `--create-pr`: creates a GitHub PR via `gh pr create`.
 3. Return the output: verification results, PR URL (if created), and any suggested follow-up review steps.
 4. If the worktree is linked to a task, note the PR number in the task log.
 
