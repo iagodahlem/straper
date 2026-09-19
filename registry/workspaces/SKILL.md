@@ -45,8 +45,8 @@ The report groups worktrees into:
 - **ORPHANED** — no PR and no task linkage (kept by default)
 
 …and prints a summary line with totals. To actually remove stale worktrees,
-use `./scripts/cleanup-workspaces.sh` (without `--dry-run`) — a separate,
-deliberate action, not part of this read-only listing.
+use `skills/worktree/cleanup-workspaces.sh` (without `--dry-run`) — a
+separate, deliberate action, not part of this read-only listing.
 
 ## Examples
 

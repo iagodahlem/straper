@@ -1,5 +1,9 @@
 # workspaces changelog
 
+## 0.1.4 — 2026-09-19
+
+Publish workspaces v0.1.4.
+
 ## 0.1.3 — 2026-07-28
 
 Replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
