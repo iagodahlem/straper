@@ -1,5 +1,9 @@
 # session changelog
 
+## 0.1.5 — 2026-09-19
+
+Publish session v0.1.5.
+
 ## 0.1.4 — 2026-08-04
 
 Docs: the job-sessions section no longer points at a workspace-root `jobs/README.md` — jobs are skill-local now (`skills/<name>/jobs/<id>/`, per the skill-owned config/jobs contract), so the frontmatter schema is documented per owning skill instead.
