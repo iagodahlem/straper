@@ -279,7 +279,8 @@ resume only works on the machine that ran the session.
 Scheduler jobs that spawn a nested `claude -p` (today only `slack-pulse`) name
 and register that session so it is resumable by name. Jobs are skill-local —
 each lives at `skills/<name>/jobs/<id>/`, and the frontmatter schema is
-documented per-skill (see the [[scheduler]] skill's "add-job" for the shape).
+documented per-skill (see `skills/scheduler/scheduler.md`'s "add-job" for the
+shape).
 The job's `run.sh`:
 
 1. Generates a fixed **lowercased** uuid and a human name, then passes
