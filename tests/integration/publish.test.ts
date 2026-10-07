@@ -56,6 +56,8 @@ interface SkillOpts {
   dependsOn?: string[]
   commandsJs?: string
   mdBody?: string
+  /** `publish:` frontmatter value. Defaults to 'public'; null omits the field. */
+  publish?: string | null
 }
 
 async function writeSkill(name: string, opts: SkillOpts = {}): Promise<void> {
@@ -66,7 +68,8 @@ async function writeSkill(name: string, opts: SkillOpts = {}): Promise<void> {
     dependsOn.length > 0
       ? `depends_on:\n${dependsOn.map((d) => `  - ${d}`).join('\n')}\n`
       : 'depends_on: []\n'
-  const md = `---\nname: ${name}\ndescription: ${name} does a thing\nversion: 1\nvisibility: user\ntriggers:\n  - /${name}\n${dependsBlock}---\n\n# ${name}\n\n${opts.mdBody ?? 'Body.'}\n`
+  const publishField = opts.publish === null ? '' : `publish: ${opts.publish ?? 'public'}\n`
+  const md = `---\nname: ${name}\ndescription: ${name} does a thing\nversion: 1\nvisibility: user\n${publishField}triggers:\n  - /${name}\n${dependsBlock}---\n\n# ${name}\n\n${opts.mdBody ?? 'Body.'}\n`
   await writeFile(join(dir, `${name}.md`), md, 'utf-8')
   if (opts.commandsJs !== undefined) {
     await writeFile(join(dir, `${name}-commands.js`), opts.commandsJs, 'utf-8')
@@ -173,6 +176,51 @@ describe('publish — environmental privilege', () => {
     await writeSkill('demo')
     const stderr = await expectExit(() => publish({ module: 'demo', dir: wsDir }))
     expect(stderr).toContain('registry repo')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Publish visibility gate
+// ---------------------------------------------------------------------------
+
+describe('publish — publish visibility gate', () => {
+  it('refuses a skill with no publish field in frontmatter', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { publish: null })
+    await initRegistryRepo()
+
+    const stderr = await expectExit(() => publish({ module: 'demo', dir: wsDir, registryRepo }))
+    expect(stderr).toContain('publish')
+  })
+
+  it('refuses a skill marked publish: private', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { publish: 'private' })
+    await initRegistryRepo()
+
+    const stderr = await expectExit(() => publish({ module: 'demo', dir: wsDir, registryRepo }))
+    expect(stderr).toContain('private')
+  })
+
+  it('refuses a skill marked publish: local', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { publish: 'local' })
+    await initRegistryRepo()
+
+    const stderr = await expectExit(() => publish({ module: 'demo', dir: wsDir, registryRepo }))
+    expect(stderr).toContain('local')
+  })
+
+  it('publishes a skill marked publish: public', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { publish: 'public' })
+    await initRegistryRepo()
+
+    const log = captureLog()
+    const result = await runPublish('demo')
+    log.restore()
+
+    expect(result.version).toBe('0.1.0')
   })
 })
 
@@ -376,6 +424,50 @@ describe('publish — successful publish', () => {
     // Non-git workspace: fallback publishes working-dir bytes with no provenance.
     expect(result.sourceCommit).toBe('')
   })
+
+  it('never publishes config/*.env or config/bots.json in the fallback', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { commandsJs: "console.log('tracked')\n" })
+    await mkdir(join(wsDir, 'skills', 'demo', 'config'), { recursive: true })
+    await writeFile(join(wsDir, 'skills', 'demo', 'config', 'secret.env'), 'TOKEN=abc\n', 'utf-8')
+    await writeFile(join(wsDir, 'skills', 'demo', 'config', 'bots.json'), '{"bot":"x"}\n', 'utf-8')
+    await writeFile(join(wsDir, 'skills', 'demo', 'config', 'settings.json'), '{"keep":true}\n', 'utf-8')
+    await initRegistryRepo()
+    // No initWorkspaceGit() — genuinely non-git workspace, same fallback as above.
+
+    const log = captureLog()
+    const result = await runPublish('demo')
+    log.restore()
+
+    expect(result.sourceCommit).toBe('')
+    expect(showOnBranch(result.branch, 'registry/demo/demo-commands.js')).toContain('tracked')
+    expect(showOnBranch(result.branch, 'registry/demo/config/settings.json')).toContain('keep')
+    expect(() => showOnBranch(result.branch, 'registry/demo/config/secret.env')).toThrow()
+    expect(() => showOnBranch(result.branch, 'registry/demo/config/bots.json')).toThrow()
+  })
+
+  it('respects .gitignore in the fallback', async () => {
+    await makeWorkspaceGated()
+    await writeSkill('demo', { commandsJs: "console.log('tracked')\n" })
+    await writeFile(join(wsDir, 'skills', 'demo', '.gitignore'), 'scratch.local.js\n', 'utf-8')
+    await writeFile(
+      join(wsDir, 'skills', 'demo', 'scratch.local.js'),
+      'console.log("scratch")\n',
+      'utf-8',
+    )
+    // Repo exists but has zero commits, so this is still the no-history fallback —
+    // check-ignore reads working-tree .gitignore files without needing a commit.
+    git(wsDir, ['init', '-q'])
+    await initRegistryRepo()
+
+    const log = captureLog()
+    const result = await runPublish('demo')
+    log.restore()
+
+    expect(result.sourceCommit).toBe('')
+    expect(showOnBranch(result.branch, 'registry/demo/demo-commands.js')).toContain('tracked')
+    expect(() => showOnBranch(result.branch, 'registry/demo/scratch.local.js')).toThrow()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -522,7 +614,7 @@ describe('publish — SKILL.md metadata', () => {
     await mkdir(dir, { recursive: true })
     await writeFile(
       join(dir, 'demo.md'),
-      '---\nname: demo\nversion: 1\n---\n\n# demo\n\nBody.\n',
+      '---\nname: demo\nversion: 1\npublish: public\n---\n\n# demo\n\nBody.\n',
       'utf-8',
     )
     await initRegistryRepo()
