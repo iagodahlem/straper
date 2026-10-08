@@ -142,7 +142,7 @@ The pointers carry identical content and just say "read `skills/<name>/<name>.md
 
 ### Publishing (`straper publish`)
 
-Module authors push a workspace skill back into a registry checkout with `straper publish <module>`. It is gated: the workspace must carry a scrub engine and gate config, the skill must be committed and self-contained (every cross-skill reference declared as a dependency), and the command opens a review branch rather than committing to the registry directly. Version numbers bump automatically.
+Module authors push a workspace skill back into a registry checkout with `straper publish <module>`. It is gated: the workspace must carry a scrub engine and gate config, the skill's frontmatter must declare `publish: public`, the skill must be committed and self-contained (every cross-skill reference declared as a dependency), and the command opens a review branch rather than committing to the registry directly. Version numbers bump automatically.
 
 ## Two CLIs: `straper` and `<agent>`
 

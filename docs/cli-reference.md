@@ -200,7 +200,7 @@ Three categories are computed:
 
 ## straper publish
 
-Publish a workspace skill (`skills/<module>/`) into a Straper registry checkout. Intended for module authors. Privilege is environmental: the command refuses unless the workspace carries both a gate engine (`skills/scrub/scrub.sh`) and gate config (`config/publish-gate.conf`).
+Publish a workspace skill (`skills/<module>/`) into a Straper registry checkout. Intended for module authors. Privilege is environmental: the command refuses unless the workspace carries both a gate engine (`skills/scrub/scrub.sh`) and gate config (`config/publish-gate.conf`). It also refuses unless the skill's own frontmatter declares `publish: public` — `private`, `local`, or a missing field all fail closed.
 
 ```bash
 straper publish <module> [options]

@@ -8,6 +8,7 @@ import { RUNTIME_BASELINE_V1 } from '../baseline.js'
 import {
   buildSkillMdContent,
   error as exitWithError,
+  parseFrontmatter,
   skillDescriptionFor,
   toPosix,
 } from './registry-shared.js'
@@ -68,6 +69,8 @@ async function pathExists(path: string): Promise<boolean> {
  * Publish a workspace skill (skills/<module>/) into a straper registry checkout.
  * Privilege is environmental: refuses unless the workspace has both a gate
  * engine (skills/scrub/scrub.sh) and gate config (config/publish-gate.conf).
+ * Also refuses unless the skill's own frontmatter declares `publish: public`;
+ * any other value, or a missing field, fails closed.
  */
 export async function publish(args: PublishArgs): Promise<PublishResult> {
   try {
@@ -138,9 +141,11 @@ async function publishPipeline(args: PublishArgs): Promise<PublishResult> {
       fail(`No files found under skills/${module} — nothing to publish.`)
     }
 
+    const mainMd = await readFile(join(sourceDir, `${module}.md`), 'utf-8')
+    assertPublishable(module, mainMd)
+
     runGate(module, workspaceDir, scrubPath, sourceDir, relFiles)
 
-    const mainMd = await readFile(join(sourceDir, `${module}.md`), 'utf-8')
     const declaredDeps = parseDependsOn(mainMd)
     const deps = await captureDeps(
       module,
@@ -306,6 +311,39 @@ function isExcluded(name: string): boolean {
   return EXCLUDED_DIRS.has(name) || name.startsWith('.local')
 }
 
+// Excluded by name regardless of .gitignore: config/*.env is credential-shaped
+// and config/bots.json is bot/project topology — neither belongs in a published
+// skill even if it happens to be present and not otherwise ignored.
+const NEVER_PUBLISHED = [/^config\/[^/]+\.env$/, /^config\/bots\.json$/]
+
+function isNeverPublished(rel: string): boolean {
+  return NEVER_PUBLISHED.some((pattern) => pattern.test(rel))
+}
+
+/**
+ * Of the given module-relative paths, the subset git would ignore. Meaningful
+ * only with a git context (even an uncommitted one — check-ignore reads
+ * working-tree .gitignore files, not HEAD); outside any repo there is no
+ * ignore config to respect, so nothing is reported as ignored.
+ */
+function gitIgnored(moduleDir: string, relFiles: string[]): Set<string> {
+  if (relFiles.length === 0) return new Set()
+  const res = spawnSync(
+    'git',
+    ['-C', moduleDir, 'check-ignore', '--no-index', '--', ...relFiles],
+    { encoding: 'utf-8' },
+  )
+  if (res.status === 128) return new Set()
+  return new Set(res.stdout.split('\n').filter(Boolean))
+}
+
+/**
+ * List a module's files. In the no-git-history fallback (applyExclusions),
+ * this is the publish allowlist: structurally-excluded dirs, names git would
+ * ignore, and config/*.env + config/bots.json are all dropped — mirroring
+ * what `git add` would actually pick up, so the fallback can never publish
+ * more than the normal HEAD-staged path would.
+ */
 async function collectModuleFiles(moduleDir: string, applyExclusions: boolean): Promise<string[]> {
   const rels: string[] = []
   async function walk(dir: string, prefix: string): Promise<void> {
@@ -319,7 +357,11 @@ async function collectModuleFiles(moduleDir: string, applyExclusions: boolean): 
     }
   }
   await walk(moduleDir, '')
-  return rels.sort()
+  if (!applyExclusions) return rels.sort()
+
+  const candidates = rels.filter((rel) => !isNeverPublished(rel))
+  const ignored = gitIgnored(moduleDir, candidates)
+  return candidates.filter((rel) => !ignored.has(rel)).sort()
 }
 
 /**
@@ -427,6 +469,20 @@ function scanSpecifiers(rel: string, content: string): string[] {
     }
   }
   return specs
+}
+
+/**
+ * Refuse to publish any skill not explicitly marked `publish: public`. The
+ * field also takes `private` and `local`; a missing field is treated the
+ * same as either — fails closed rather than assuming public intent.
+ */
+function assertPublishable(module: string, mainMd: string): void {
+  const publishField = parseFrontmatter(mainMd).publish
+  if (publishField === 'public') return
+  const state = publishField === undefined ? 'has no "publish" field' : `is "publish: ${publishField}"`
+  fail(
+    `Refusing to publish skills/${module}: its frontmatter ${state}. Only skills with "publish: public" can be published.`,
+  )
 }
 
 /** Parse a `depends_on` list from a skill's main .md frontmatter (block or inline form). */

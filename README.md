@@ -108,7 +108,7 @@ See the [Provider Guide](docs/provider-guide.md) for per-tool setup.
 - **`straper.lock`** — Records which skills are installed, at what version, and the hash of every vendored file. The source of truth for what your workspace has.
 - **`.straper/base/`** — A pristine copy of each skill's published bytes. It is the merge baseline: `straper update` runs a three-way merge (base vs. your edits vs. new upstream) so upstream fixes land without clobbering your local changes; genuine conflicts get standard conflict markers.
 - **Consumer pointers** — Vendoring a skill also writes a small `SKILL.md` pointer so agents surface it: `.claude/skills/<name>/SKILL.md` for Claude Code and `.agents/skills/<name>/SKILL.md` universally (read natively by Cursor, Codex, Amp, and Vercel's installer). The skill body lives once under `skills/<name>/`; the pointers just register it.
-- **The publish gate** — Module authors run `straper publish` to push a workspace skill into a registry checkout. It is deliberately gated: the workspace must carry a scrub engine and gate config, the skill must be committed and self-contained (every cross-skill reference declared as a dependency), and the command opens a branch for review rather than committing to the registry directly.
+- **The publish gate** — Module authors run `straper publish` to push a workspace skill into a registry checkout. It is deliberately gated: the workspace must carry a scrub engine and gate config, the skill's frontmatter must declare `publish: public`, the skill must be committed and self-contained (every cross-skill reference declared as a dependency), and the command opens a branch for review rather than committing to the registry directly.
 
 ## Documentation
 
