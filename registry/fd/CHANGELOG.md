@@ -1,5 +1,9 @@
 # fd changelog
 
+## 0.1.7 — 2026-10-10
+
+Publish fd v0.1.7.
+
 ## 0.1.6 — 2026-07-28
 
 - fd: replace literal `scripts/<agent>` placeholder in usage text with runtime-correct wording.
