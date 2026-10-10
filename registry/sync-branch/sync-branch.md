@@ -3,6 +3,7 @@ name: sync-branch
 description: Rebase feature branch on latest main (never merge)
 version: 1
 visibility: user
+publish: public
 triggers:
   - /sync-branch
 cli_command: sync-branch
