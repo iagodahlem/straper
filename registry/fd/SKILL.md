@@ -3,6 +3,7 @@ name: fd
 description: Feature design lifecycle — create, work, track status, and close feature designs
 version: 1
 visibility: user
+publish: public
 triggers:
   - /fd
 backing_script: fd-commands.js
