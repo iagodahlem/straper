@@ -3,6 +3,7 @@ name: memory
 description: Manage workspace memory — daily logs, feedback, project context, and references
 version: 1
 visibility: user
+publish: public
 triggers:
   - /memory
   - hook:SessionStart
