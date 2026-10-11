@@ -1,9 +1,9 @@
 {
   "name": "sync-branch",
   "type": "skill",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "deps": [],
   "config_keys": [],
-  "source_commit": "33f04bdd7a7a5842db163ba3233b770d2035acdb",
-  "published_at": "2026-07-28T20:35:40.000Z"
+  "source_commit": "eb8064cb7dcb7f3abf96861e1805b4c6bbed7d00",
+  "published_at": "2026-10-11T06:34:07.726Z"
 }
